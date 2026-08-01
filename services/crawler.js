@@ -1,6 +1,7 @@
-import { extractContactInfo, mergeContactInfo, parsePageContent } from './pageContent.js'
-import { detectAdsData, extractProductsFromHtml } from './adsDetect.js'
+import { extractContactInfo, mergeContactInfo, parsePageContent, analyzeReturnPolicyQuality, getBodyTextFromHtml } from './pageContent.js'
+import { detectAdsData } from './adsDetect.js'
 import { scanProductPages } from './productCrawler.js'
+import * as cheerio from 'cheerio'
 
 export const CrawlerErrorCode = {
   INVALID_URL: 'INVALID_URL',
@@ -60,14 +61,25 @@ const PAGE_PATTERNS = {
   },
   refundPolicy: {
     url: [
-      /\/refund(?:-policy)?(?:\/|$|\?)/i,
-      /\/return(?:-policy|-s)?(?:\/|$|\?)/i,
+      /\/refund[_-]returns?(?:\/|$|\?)/i,
+      /\/refund(?:[_-]policy)?(?:\/|$|\?)/i,
+      /\/return(?:[_-]policy)?(?:\/|$|\?)/i,
+      /\/returns(?:[_-]policy)?(?:\/|$|\?)/i,
       /\/policies\/refund(?:-policy)?(?:\/|$|\?)/i,
       /\/policies\/return(?:-policy)?(?:\/|$|\?)/i,
       /\/pages\/refund(?:-policy)?(?:\/|$|\?)/i,
       /\/money-back(?:\/|$|\?)/i,
     ],
-    text: [/refund\s*policy/i, /return\s*policy/i, /money\s*back/i, /returns?\s*(&|and)\s*refunds?/i],
+    text: [
+      /refund\s*(?:&|and)\s*returns?\s*policy/i,
+      /returns?\s*(?:&|and)\s*refunds?\s*policy/i,
+      /refund\s*policy/i,
+      /return\s*policy/i,
+      /returns?\s*policy/i,
+      /refund\s*(?:&|and)\s*returns?/i,
+      /returns?\s*(?:&|and)\s*refunds?/i,
+      /money\s*back/i,
+    ],
   },
   shippingPolicy: {
     url: [
@@ -212,39 +224,49 @@ function extractMeta(html) {
 }
 
 function extractLinks(html, baseUrl) {
+  const $ = cheerio.load(html)
   const base = new URL(baseUrl)
   const links = []
   const seen = new Set()
-  const anchorRegex = /<a\b([^>]*?)href\s*=\s*["']([^"']+)["']([^>]*?)>([\s\S]*?)<\/a>/gi
 
-  let match
-  while ((match = anchorRegex.exec(html)) !== null) {
-    const href = match[2].trim()
-    if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-      continue
+  $('a[href]').each((_, el) => {
+    const href = ($(el).attr('href') || '').trim()
+    if (
+      !href ||
+      href.startsWith('#') ||
+      href.startsWith('javascript:') ||
+      href.startsWith('mailto:') ||
+      href.startsWith('tel:')
+    ) {
+      return
     }
 
     let absolute
     try {
       absolute = new URL(href, base).href
     } catch {
-      continue
+      return
     }
 
-    if (seen.has(absolute)) continue
+    if (seen.has(absolute)) return
     seen.add(absolute)
 
-    const anchorText = decodeHtmlEntities(match[4].replace(/<[^>]+>/g, ' '))
+    const anchorText = decodeHtmlEntities($(el).text().replace(/\s+/g, ' ').trim())
+    const ariaLabel = decodeHtmlEntities(($(el).attr('aria-label') || '').trim())
+    const title = decodeHtmlEntities(($(el).attr('title') || '').trim())
+    const combinedText = [anchorText, ariaLabel, title].filter(Boolean).join(' ').trim()
     const parsed = new URL(absolute)
-    const isInternal = parsed.hostname === base.hostname
 
     links.push({
       url: absolute,
-      text: anchorText,
+      text: anchorText || combinedText,
+      combinedText: combinedText || anchorText,
       path: parsed.pathname,
-      isInternal,
+      isInternal: parsed.hostname === base.hostname,
+      inFooter: $(el).closest('footer, [role="contentinfo"], .site-footer, #footer, .footer').length > 0,
+      inNav: $(el).closest('nav, [role="navigation"], .menu, .navigation').length > 0,
     })
-  }
+  })
 
   return links
 }
@@ -252,22 +274,53 @@ function extractLinks(html, baseUrl) {
 function scorePageMatch(pageType, link) {
   const patterns = PAGE_PATTERNS[pageType]
   let score = 0
+  let matchedKeyword = null
+  const textToMatch = link.combinedText || link.text || ''
 
   for (const urlPattern of patterns.url) {
     if (urlPattern.test(link.path) || urlPattern.test(link.url)) {
       score += 3
+      matchedKeyword = urlPattern.source
       break
     }
   }
 
   for (const textPattern of patterns.text) {
-    if (textPattern.test(link.text)) {
+    if (textPattern.test(textToMatch) || textPattern.test(link.text || '')) {
       score += 2
+      matchedKeyword = matchedKeyword || textPattern.source
       break
     }
   }
 
-  return score
+  if (score > 0 && link.inFooter) {
+    score += 1
+    matchedKeyword = matchedKeyword || 'footer-link'
+  }
+
+  return { score, matchedKeyword }
+}
+
+function collectPolicyCandidates(links) {
+  const policyTypes = ['privacyPolicy', 'refundPolicy', 'shippingPolicy']
+  const candidates = []
+
+  for (const link of links) {
+    for (const pageType of policyTypes) {
+      const { score, matchedKeyword } = scorePageMatch(pageType, link)
+      if (score > 0) {
+        candidates.push({
+          pageType,
+          url: link.url,
+          text: (link.combinedText || link.text || '').slice(0, 120),
+          matchedKeyword: matchedKeyword || '',
+          score,
+        })
+      }
+    }
+  }
+
+  return candidates.sort((a, b) => b.score - a.score)
 }
 
 function classifyPages(links) {
@@ -276,12 +329,14 @@ function classifyPages(links) {
   for (const pageType of PAGE_TYPES) {
     let bestMatch = null
     let bestScore = 0
+    let bestKeyword = null
 
     for (const link of links) {
-      const score = scorePageMatch(pageType, link)
+      const { score, matchedKeyword } = scorePageMatch(pageType, link)
       if (score > bestScore) {
         bestScore = score
         bestMatch = link
+        bestKeyword = matchedKeyword
       }
     }
 
@@ -289,6 +344,7 @@ function classifyPages(links) {
       found: bestScore > 0,
       url: bestMatch?.url || null,
       confidence: bestScore >= 5 ? 'high' : bestScore >= 3 ? 'medium' : bestScore > 0 ? 'low' : 'none',
+      matchedKeyword: bestKeyword,
     }
   }
 
@@ -299,6 +355,23 @@ const SHOPIFY_POLICY_PATHS = {
   privacyPolicy: '/policies/privacy-policy',
   refundPolicy: '/policies/refund-policy',
   shippingPolicy: '/policies/shipping-policy',
+}
+
+const WOOCOMMERCE_POLICY_PATHS = {
+  refundPolicy: [
+    '/refund_returns/',
+    '/refund-returns/',
+    '/refund-policy/',
+    '/return-policy/',
+    '/returns/',
+    '/returns-policy/',
+  ],
+  shippingPolicy: [
+    '/shipping-policy/',
+    '/shipping-delivery-policy/',
+    '/delivery-policy/',
+  ],
+  privacyPolicy: ['/privacy-policy/', '/privacy/'],
 }
 
 async function enrichShopifyPages(pages, origin, timeout) {
@@ -312,6 +385,28 @@ async function enrichShopifyPages(pages, origin, timeout) {
         found: true,
         url: result.url || policyUrl,
         confidence: 'high',
+      }
+    }
+  }
+
+  return pages
+}
+
+async function enrichWooCommercePages(pages, origin, timeout) {
+  for (const [pageType, paths] of Object.entries(WOOCOMMERCE_POLICY_PATHS)) {
+    if (pages[pageType]?.found) continue
+
+    for (const path of paths) {
+      const policyUrl = `${origin}${path}`
+      const result = await fetchResource(policyUrl, timeout)
+      if (result.ok) {
+        pages[pageType] = {
+          found: true,
+          url: result.url || policyUrl,
+          confidence: 'high',
+          matchedKeyword: `woocommerce:${path}`,
+        }
+        break
       }
     }
   }
@@ -558,6 +653,13 @@ async function fetchKeyPageContents(pages, homepageHtml) {
     }
 
     pageContent[pageType] = parsePageContent(html, finalUrl)
+
+    if (pageType === 'refundPolicy') {
+      const bodyText = getBodyTextFromHtml(html)
+      const pageContact = extractContactInfo(html)
+      pageContent[pageType].policyQuality = analyzeReturnPolicyQuality(bodyText, pageContact)
+    }
+
     contactSources.push(extractContactInfo(html))
   })
 
@@ -585,15 +687,18 @@ export async function crawl(url, options = {}) {
   const allLinks = extractLinks(html, finalUrl)
   const internalLinks = allLinks.filter((l) => l.isInternal)
   const platform = detectPlatform(html)
+  const policyCandidates = collectPolicyCandidates(allLinks)
   let pages = classifyPages(allLinks)
 
-  const shopifyEnrich =
+  const platformEnrich =
     platform.name === 'shopify'
       ? enrichShopifyPages(pages, origin, Math.min(timeout, 8_000))
-      : Promise.resolve(pages)
+      : platform.name === 'woocommerce'
+        ? enrichWooCommercePages(pages, origin, Math.min(timeout, 8_000))
+        : Promise.resolve(pages)
 
   const [enrichedPages, seo] = await Promise.all([
-    shopifyEnrich,
+    platformEnrich,
     checkSeoFiles(origin, Math.min(timeout, 10_000)),
   ])
 
@@ -604,7 +709,6 @@ export async function crawl(url, options = {}) {
   const productScan = await scanProductPages(allLinks, {
     maxPages: 5,
     timeout: PAGE_FETCH_TIMEOUT_MS,
-    extractProducts: extractProductsFromHtml,
   })
 
   const ads = detectAdsData(html, productScan)
@@ -623,6 +727,11 @@ export async function crawl(url, options = {}) {
     contactInfo,
     ads,
     productsAudit: productScan.audit,
+    policyCandidates: policyCandidates.map(({ url, text, matchedKeyword }) => ({
+      url,
+      text,
+      matchedKeyword,
+    })),
     links: {
       total: allLinks.length,
       internal: internalLinks.length,

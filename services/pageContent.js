@@ -39,6 +39,27 @@ function normalizeWhitespace(text) {
   return text.replace(/\s+/g, ' ').trim()
 }
 
+const REFUND_KEYWORDS = /\b(refund|money.?back|reimbursement|reimbursed)\b/i
+const RETURN_KEYWORDS = /\b(return|send back|exchange|returned items?)\b/i
+const RETURN_WINDOW_PATTERNS = [
+  /\b(\d{1,3})\s*(?:calendar\s*)?days?\b/i,
+  /\b(\d{1,2})\s*weeks?\b/i,
+  /\b(\d{1,2})\s*months?\b/i,
+  /\bwithin\s+(\d{1,3})\s*days?\b/i,
+  /\breturn\s+(?:period|window|timeframe)\b/i,
+]
+const CONDITION_KEYWORDS = [
+  /\bunused\b/i,
+  /\bunopened\b/i,
+  /\boriginal condition\b/i,
+  /\boriginal packaging\b/i,
+  /\btags attached\b/i,
+  /\bresalable\b/i,
+  /\bwearable\b/i,
+  /\bdefective\b/i,
+  /\bdamaged\b/i,
+]
+
 function extractBodyText($) {
   $('script, style, noscript, iframe, svg, nav, header, footer').remove()
 
@@ -106,6 +127,91 @@ function isValidPhone(phone) {
 }
 
 /**
+ * Extract normalized body text from HTML.
+ */
+export function getBodyTextFromHtml(html) {
+  const $ = cheerio.load(html)
+  return extractBodyText($)
+}
+
+/**
+ * Analyze return/refund policy page quality for GMC compliance.
+ * @param {string} text - Normalized page body text
+ * @param {{ emails?: string[], phones?: string[], addresses?: string[] }} pageContact
+ */
+export function analyzeReturnPolicyQuality(text, pageContact = {}) {
+  const textLength = text.length
+
+  const refundKeywords = REFUND_KEYWORDS.test(text)
+  const returnKeywords = RETURN_KEYWORDS.test(text)
+
+  const returnWindowMatches = []
+  for (const pattern of RETURN_WINDOW_PATTERNS) {
+    const match = text.match(pattern)
+    if (match) returnWindowMatches.push(match[0])
+  }
+  const returnWindow = returnWindowMatches.length > 0
+
+  const conditionMatches = []
+  for (const pattern of CONDITION_KEYWORDS) {
+    const match = text.match(pattern)
+    if (match) conditionMatches.push(match[0])
+  }
+  const condition = conditionMatches.length > 0
+
+  const contactDetails = {
+    emails: pageContact.emails || [],
+    phones: pageContact.phones || [],
+    addresses: pageContact.addresses || [],
+  }
+  const hasContactInfo =
+    contactDetails.emails.length > 0 ||
+    contactDetails.phones.length > 0 ||
+    contactDetails.addresses.length > 0 ||
+    /\bcontact us\b/i.test(text) ||
+    /\bcustomer service\b/i.test(text)
+
+  const checks = {
+    sufficientLength: textLength >= 100,
+    refundKeywords,
+    returnKeywords,
+    returnWindow,
+    condition,
+    contactInformation: hasContactInfo,
+  }
+
+  const missing = []
+  if (!checks.sufficientLength) missing.push('sufficient content length')
+  if (!checks.refundKeywords) missing.push('refund keywords')
+  if (!checks.returnKeywords) missing.push('return keywords')
+  if (!checks.returnWindow) missing.push('return window')
+  if (!checks.condition) missing.push('return conditions')
+  if (!checks.contactInformation) missing.push('contact information')
+
+  const passedChecks = Object.values(checks).filter(Boolean).length
+  const qualityScore = Math.round((passedChecks / Object.keys(checks).length) * 100)
+
+  const risks = []
+  if (!checks.refundKeywords && !checks.returnKeywords) {
+    risks.push('Policy text lacks clear refund or return language.')
+  }
+  if (!checks.returnWindow) risks.push('No return window or time limit detected.')
+  if (!checks.condition) risks.push('Return conditions (e.g. unused, original packaging) not found.')
+  if (!checks.contactInformation) risks.push('No contact information for return inquiries.')
+
+  return {
+    textLength,
+    checks,
+    returnWindowMatches: [...new Set(returnWindowMatches)].slice(0, 5),
+    conditionMatches: [...new Set(conditionMatches)].slice(0, 5),
+    contactDetails,
+    qualityScore,
+    missing,
+    risks,
+  }
+}
+
+/**
  * Parse HTML and extract page content metadata.
  */
 export function parsePageContent(html, pageUrl) {
@@ -123,6 +229,7 @@ export function parsePageContent(html, pageUrl) {
     h1,
     textLength: text.length,
     keywords,
+    policyQuality: null,
   }
 }
 

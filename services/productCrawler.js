@@ -1,77 +1,12 @@
+import {
+  discoverProductCandidates,
+  scoreProductPage,
+  MAX_SCORE_CANDIDATES,
+} from './productScorer.js'
+
 const MAX_PRODUCT_PAGES = 5
 const DEFAULT_PAGE_TIMEOUT_MS = 10_000
 const USER_AGENT = 'EcomCheck/0.3 (Website Audit Bot)'
-
-const PRODUCT_PATH_PATTERNS = [
-  /\/products\/[^/?#]+/i,
-  /\/product\/[^/?#]+/i,
-  /\/collections\/[^/?#]+\/products\/[^/?#]+/i,
-]
-
-const PRODUCT_PATH_LOOSE = /\/product/i
-
-const PRODUCT_TEXT_PATTERNS = [
-  /\bproduct\b/i,
-  /\bbuy\b/i,
-  /\bshop\b/i,
-  /add to cart/i,
-  /add-to-cart/i,
-]
-
-function scoreProductLink(link) {
-  let score = 0
-  const path = link.path || ''
-
-  for (const pattern of PRODUCT_PATH_PATTERNS) {
-    if (pattern.test(path) || pattern.test(link.url)) {
-      score += 10
-      break
-    }
-  }
-
-  if (score === 0 && PRODUCT_PATH_LOOSE.test(path)) {
-    score += 5
-  }
-
-  for (const pattern of PRODUCT_TEXT_PATTERNS) {
-    if (pattern.test(link.text || '')) {
-      score += 2
-      break
-    }
-  }
-
-  if (/\/collections\//i.test(path) && !/\/products\//i.test(path)) {
-    score -= 5
-  }
-
-  return score
-}
-
-/**
- * Discover candidate product page URLs from crawled links.
- * @param {Array<{ url: string, path?: string, text?: string, isInternal?: boolean }>} links
- * @param {number} [maxPages]
- */
-export function discoverProductUrls(links, maxPages = MAX_PRODUCT_PAGES) {
-  const seen = new Set()
-  const candidates = []
-
-  for (const link of links) {
-    if (!link.isInternal) continue
-
-    const score = scoreProductLink(link)
-    if (score <= 0) continue
-    if (seen.has(link.url)) continue
-
-    seen.add(link.url)
-    candidates.push({ url: link.url, score })
-  }
-
-  return candidates
-    .sort((a, b) => b.score - a.score)
-    .slice(0, maxPages)
-    .map(({ url }) => url)
-}
 
 async function fetchPageHtml(url, timeout) {
   const controller = new AbortController()
@@ -103,100 +38,173 @@ async function fetchPageHtml(url, timeout) {
   }
 }
 
+function buildEmptyAudit(candidateCount = 0) {
+  return {
+    candidateCount,
+    scannedPages: 0,
+    pageScores: [],
+    productPages: [],
+    detectedProducts: 0,
+    validProducts: 0,
+    missingFields: [],
+    summary: {
+      withSchema: 0,
+      withPrice: 0,
+      withAddToCart: 0,
+    },
+  }
+}
+
 /**
- * Scan product pages and extract Product JSON-LD.
+ * Scan product pages: discover → score → rank → top N deep scan.
  * @param {Array} links - Links from homepage crawl
- * @param {{ maxPages?: number, timeout?: number, extractProducts: (html: string) => import('./adsDetect.js').ProductAnalysis[] }} options
+ * @param {{ maxPages?: number, timeout?: number, extractProducts?: Function }} options
  */
 export async function scanProductPages(links, options = {}) {
   const maxPages = options.maxPages ?? MAX_PRODUCT_PAGES
   const timeout = options.timeout ?? DEFAULT_PAGE_TIMEOUT_MS
-  const extractProducts = options.extractProducts
 
-  if (!extractProducts) {
-    throw new Error('extractProducts function is required')
+  const candidates = discoverProductCandidates(links)
+  const candidateCount = candidates.length
+
+  if (candidateCount === 0) {
+    return { productPages: [], audit: buildEmptyAudit(0) }
   }
 
-  const urls = discoverProductUrls(links, maxPages)
+  const toScore = candidates.slice(0, MAX_SCORE_CANDIDATES)
 
-  if (urls.length === 0) {
-    return {
-      productPages: [],
-      audit: {
-        scannedPages: 0,
-        productPages: [],
-        detectedProducts: 0,
-        validProducts: 0,
-        missingFields: [],
-      },
-    }
-  }
-
-  const results = await Promise.all(
-    urls.map(async (url) => {
-      const fetchResult = await fetchPageHtml(url, timeout)
+  const scoredPages = await Promise.all(
+    toScore.map(async (candidate) => {
+      const fetchResult = await fetchPageHtml(candidate.url, timeout)
 
       if (fetchResult.error || !fetchResult.html) {
         return {
-          url,
+          url: candidate.url,
           fetched: false,
           error: fetchResult.error,
+          score: candidate.urlScore,
+          urlScore: candidate.urlScore,
+          htmlScore: 0,
+          signals: {
+            schema: false,
+            price: false,
+            currency: false,
+            availability: false,
+            addToCart: false,
+            buyNow: false,
+          },
+          urlSignals: candidate.urlSignals,
+          htmlSignals: [],
           products: [],
-          hasProductSchema: false,
-          valid: false,
-          missingFields: [],
+          selected: false,
         }
       }
 
-      const products = extractProducts(fetchResult.html)
-      const best = products[0]
-      const hasProductSchema = products.length > 0
-      const valid = products.some((p) => p.valid)
-
-      const missingFields = [
-        ...new Set(products.flatMap((p) => p.missingRequired || [])),
-      ]
+      const scored = scoreProductPage(fetchResult.html, fetchResult.finalUrl || candidate.url)
 
       return {
-        url: fetchResult.finalUrl || url,
+        url: fetchResult.finalUrl || candidate.url,
         fetched: true,
         error: null,
-        products,
-        hasProductSchema,
-        valid,
-        missingFields,
-        productName: best?.name || null,
+        ...scored,
+        selected: false,
       }
     })
   )
 
-  const detectedProducts = results.reduce(
+  scoredPages.sort((a, b) => b.score - a.score)
+
+  const selected = scoredPages.filter((p) => p.score > 0).slice(0, maxPages)
+  selected.forEach((p) => {
+    p.selected = true
+  })
+
+  const productPages = selected.map((page) => {
+    const products = page.products || []
+    const hasProductSchema = products.length > 0
+    const valid = products.some((p) => p.valid)
+    const missingFields = [...new Set(products.flatMap((p) => p.missingRequired || []))]
+
+    return {
+      url: page.url,
+      fetched: page.fetched,
+      error: page.error,
+      score: page.score,
+      signals: page.signals,
+      hasProductSchema,
+      valid,
+      missingFields,
+      products,
+      productName: products[0]?.name || null,
+      priceConsistency: page.priceConsistency || null,
+    }
+  })
+
+  const detectedProducts = productPages.reduce(
     (sum, page) => sum + (page.products?.length || 0),
     0
   )
-  const validProducts = results.reduce(
+  const validProducts = productPages.reduce(
     (sum, page) => sum + (page.products?.filter((p) => p.valid).length || 0),
     0
   )
-  const missingFields = [
-    ...new Set(results.flatMap((page) => page.missingFields || [])),
-  ]
+  const missingFields = [...new Set(productPages.flatMap((page) => page.missingFields || []))]
+
+  const pageScores = scoredPages.map((page) => ({
+    url: page.url,
+    score: page.score,
+    urlScore: page.urlScore,
+    htmlScore: page.htmlScore,
+    fetched: page.fetched,
+    selected: page.selected,
+    error: page.error,
+    signals: page.signals,
+    urlSignals: page.urlSignals,
+    htmlSignals: page.htmlSignals,
+  }))
 
   return {
-    productPages: results,
+    productPages,
     audit: {
-      scannedPages: results.length,
-      productPages: results.map(({ url, fetched, hasProductSchema, valid, missingFields: mf, error }) => ({
-        url,
-        fetched,
-        hasProductSchema,
-        valid,
-        missingFields: mf,
-        error,
-      })),
+      candidateCount,
+      scannedPages: productPages.length,
+      pageScores,
+      productPages: productPages.map(
+        ({ url, fetched, hasProductSchema, valid, missingFields, error, score, signals, products, priceConsistency }) => ({
+          url,
+          fetched,
+          hasProductSchema,
+          valid,
+          missingFields,
+          error,
+          score,
+          signals,
+          priceConsistency,
+          schemas: (products || []).map((p) => ({
+            name: p.name,
+            fields: p.fields,
+            values: p.values,
+            missingRequired: p.missingRequired,
+            missingRecommended: p.missingRecommended,
+            valid: p.valid,
+          })),
+        })
+      ),
       detectedProducts,
       validProducts,
       missingFields,
+      summary: {
+        withSchema: productPages.filter((p) => p.signals?.schema).length,
+        withPrice: productPages.filter((p) => p.signals?.price).length,
+        withAddToCart: productPages.filter((p) => p.signals?.addToCart).length,
+      },
     },
   }
+}
+
+/** @deprecated Use discoverProductCandidates from productScorer.js */
+export function discoverProductUrls(links, maxPages = MAX_PRODUCT_PAGES) {
+  return discoverProductCandidates(links)
+    .slice(0, maxPages)
+    .map((c) => c.url)
 }

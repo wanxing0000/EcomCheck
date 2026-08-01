@@ -67,6 +67,25 @@ function hasValue(value) {
   return true
 }
 
+function parsePriceNumber(value) {
+  if (value == null) return null
+  const num = parseFloat(String(value).replace(/[^\d.]/g, ''))
+  return Number.isFinite(num) ? num : null
+}
+
+function extractOfferValues(offer) {
+  if (!offer) return { price: null, currency: null }
+  const price = parsePriceNumber(
+    offer.price ?? offer.priceSpecification?.price ?? offer.lowPrice ?? offer.highPrice
+  )
+  const currency =
+    offer.priceCurrency ||
+    offer.priceSpecification?.priceCurrency ||
+    offer.priceSpecification?.currency ||
+    null
+  return { price, currency }
+}
+
 /**
  * Analyze a single Product JSON-LD object.
  * @param {object} product
@@ -74,6 +93,7 @@ function hasValue(value) {
 export function analyzeProductSchema(product) {
   const offer = getOffer(product)
   const brand = product.brand?.name || product.brand
+  const offerValues = extractOfferValues(offer)
 
   const fields = {
     name: hasValue(product.name),
@@ -93,6 +113,7 @@ export function analyzeProductSchema(product) {
   return {
     name: product.name || null,
     fields,
+    values: offerValues,
     missingRequired,
     missingRecommended,
     missingFields,

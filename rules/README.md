@@ -43,6 +43,11 @@ Each rule exports an object with:
 | A001 | ads | Meta Pixel Detection | medium |
 | A002 | ads | Google Tag Detection | medium |
 | A003 | ads | Product JSON-LD Detection | high |
+| G001 | gmc | Product Price | high |
+| G002 | gmc | Product Availability | high |
+| G003 | gmc | Return Policy | high |
+| G004 | gmc | Shipping Information | medium |
+| G005 | gmc | Product Identifiers | warning |
 
 ## Usage
 

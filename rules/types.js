@@ -1,9 +1,9 @@
 /**
- * @typedef {'trust' | 'policy' | 'technical' | 'ads'} RuleCategory
+ * @typedef {'trust' | 'policy' | 'technical' | 'ads' | 'gmc'} RuleCategory
  */
 
 /**
- * @typedef {'high' | 'medium' | 'low'} RuleSeverity
+ * @typedef {'high' | 'medium' | 'low' | 'warning'} RuleSeverity
  */
 
 /**
@@ -11,6 +11,9 @@
  * @property {boolean} passed
  * @property {string} [message]
  * @property {string} [recommendation]
+ * @property {object} [policyQuality]
+ * @property {object} [priceRisks]
+ * @property {object} [businessInfo]
  */
 
 /**
@@ -33,6 +36,9 @@
  * @property {boolean} passed
  * @property {string} message
  * @property {string} recommendation
+ * @property {object} [policyQuality]
+ * @property {object} [priceRisks]
+ * @property {object} [businessInfo]
  */
 
 export {}

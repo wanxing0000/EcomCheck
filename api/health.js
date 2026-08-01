@@ -10,7 +10,7 @@ export default function handler(req, res) {
     sendJson(res, 200, {
       status: 'ok',
       service: 'ecomcheck-api',
-      version: '0.3.4',
+      version: '0.4.1',
     })
     return
   }

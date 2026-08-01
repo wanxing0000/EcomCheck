@@ -10,6 +10,13 @@ import { metaBasicRule } from './technical/K004-meta-basic.js'
 import { metaPixelRule } from './ads/A001-meta-pixel.js'
 import { googleTagRule } from './ads/A002-google-tag.js'
 import { productJsonLdRule } from './ads/A003-product-jsonld.js'
+import { productPriceRule } from './gmc/G001-product-price.js'
+import { productAvailabilityRule } from './gmc/G002-product-availability.js'
+import { returnPolicyRule } from './gmc/G003-return-policy.js'
+import { shippingInfoRule } from './gmc/G004-shipping-info.js'
+import { productIdentifiersRule } from './gmc/G005-product-identifiers.js'
+import { productPriceConsistencyRule } from './gmc/G006-product-price-consistency.js'
+import { businessInformationRule } from './gmc/G007-business-information.js'
 
 /** @type {import('./types.js').Rule[]} */
 export const allRules = [
@@ -25,6 +32,13 @@ export const allRules = [
   metaPixelRule,
   googleTagRule,
   productJsonLdRule,
+  productPriceRule,
+  productAvailabilityRule,
+  returnPolicyRule,
+  shippingInfoRule,
+  productIdentifiersRule,
+  productPriceConsistencyRule,
+  businessInformationRule,
 ]
 
 /**
@@ -45,6 +59,9 @@ export function runRules(auditData) {
       passed: result.passed,
       message: result.message || '',
       recommendation: result.recommendation || '',
+      ...(result.policyQuality && { policyQuality: result.policyQuality }),
+      ...(result.priceRisks && { priceRisks: result.priceRisks }),
+      ...(result.businessInfo && { businessInfo: result.businessInfo }),
     }
   })
 }
@@ -62,4 +79,11 @@ export {
   metaPixelRule,
   googleTagRule,
   productJsonLdRule,
+  productPriceRule,
+  productAvailabilityRule,
+  returnPolicyRule,
+  shippingInfoRule,
+  productIdentifiersRule,
+  productPriceConsistencyRule,
+  businessInformationRule,
 }

@@ -65,9 +65,10 @@ export default function Report() {
 
   if (!url || !crawlResult) return null
 
-  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit } = crawlResult
+  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc } = crawlResult
 
   const adsRules = rules?.filter((r) => r.category === 'ads') ?? []
+  const gmcScoreColor = gmc?.score >= 80 ? '#22c55e' : gmc?.score >= 60 ? '#f59e0b' : '#ef4444'
 
   const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'
 
@@ -154,6 +155,206 @@ export default function Report() {
         </Card>
       )}
 
+      {/* GMC Compliance */}
+      {gmc && (
+        <Card className="mt-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">GMC Compliance</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Google Merchant Center readiness checks.
+              </p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div
+                className="flex h-20 w-20 items-center justify-center rounded-full border-[6px]"
+                style={{ borderColor: gmcScoreColor }}
+              >
+                <span className="text-2xl font-bold text-gray-900">{gmc.score}</span>
+              </div>
+              <p className="mt-1 text-xs font-medium text-gray-600">GMC Score</p>
+              <p className="text-xs text-gray-400">
+                {gmc.summary?.passed ?? 0}/{gmc.summary?.total ?? 0} passed
+              </p>
+            </div>
+          </div>
+
+          {gmc.passedRules?.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Passed Rules</h3>
+              <ul className="mt-2 space-y-2">
+                {gmc.passedRules.map((rule) => (
+                  <li key={rule.id} className="flex items-start gap-2 text-sm text-green-700">
+                    <span className="shrink-0 rounded bg-green-100 px-1.5 py-0.5 text-xs font-bold">{rule.id}</span>
+                    <span>{rule.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {gmc.issues?.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Issues</h3>
+              <ul className="mt-2 space-y-2">
+                {gmc.issues.map((issue) => (
+                  <li key={issue.id} className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm">
+                    <span className="shrink-0 rounded bg-red-200 px-1.5 py-0.5 text-xs font-bold text-red-700">{issue.id}</span>
+                    <div>
+                      <p className="font-medium text-red-900">{issue.name}</p>
+                      <p className="text-red-700">{issue.message}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {gmc.warnings?.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Warnings</h3>
+              <ul className="mt-2 space-y-2">
+                {gmc.warnings.map((warn) => (
+                  <li key={warn.id} className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+                    <span className="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-xs font-bold text-amber-800">{warn.id}</span>
+                    <div>
+                      <p className="font-medium text-amber-900">{warn.name}</p>
+                      <p className="text-amber-800">{warn.message}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {gmc.recommendations?.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Recommendations</h3>
+              <ul className="mt-2 space-y-2">
+                {gmc.recommendations.map((rec) => (
+                  <li key={rec.id} className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="shrink-0 font-medium uppercase text-amber-600">{rec.priority}</span>
+                    <span>{rec.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* GMC Risk Details */}
+      {gmc?.riskDetails && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">GMC Risk Details</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Deep quality signals for return policy, price consistency, and business trust.
+          </p>
+
+          {gmc.riskDetails.returnPolicy && (
+            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Return Policy Quality</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Quality score: <span className="font-medium">{gmc.riskDetails.returnPolicy.qualityScore ?? 0}/100</span>
+                {' · '}
+                Text length: {formatNumber(gmc.riskDetails.returnPolicy.textLength ?? 0)} chars
+              </p>
+              {gmc.riskDetails.returnPolicy.checks && (
+                <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {Object.entries(gmc.riskDetails.returnPolicy.checks).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between text-sm">
+                      <dt className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</dt>
+                      <dd className={value ? 'font-medium text-green-700' : 'font-medium text-amber-700'}>
+                        {value ? 'Yes' : 'No'}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {gmc.riskDetails.returnPolicy.risks?.length > 0 && (
+                <ul className="mt-3 space-y-1 text-sm text-amber-800">
+                  {gmc.riskDetails.returnPolicy.risks.map((risk) => (
+                    <li key={risk}>• {risk}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {gmc.riskDetails.priceConsistency && (
+            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Price Consistency</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Compared {gmc.riskDetails.priceConsistency.compared ?? 0} of{' '}
+                {gmc.riskDetails.priceConsistency.checked ?? 0} scanned pages ·{' '}
+                {gmc.riskDetails.priceConsistency.consistent ?? 0} consistent
+              </p>
+              {gmc.riskDetails.priceConsistency.inconsistent?.length > 0 ? (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {gmc.riskDetails.priceConsistency.inconsistent.map((item) => (
+                    <li key={item.url} className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                      <p className="truncate font-medium">{item.url}</p>
+                      <p className="mt-0.5">
+                        Schema: {item.schemaPrice} · Displayed: {item.displayPrice}
+                        {item.currency ? ` ${item.currency}` : ''}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-green-700">No price mismatches detected on comparable product pages.</p>
+              )}
+            </div>
+          )}
+
+          {gmc.riskDetails.businessInformation && (
+            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Business Information</h3>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <dt className="text-xs text-gray-500">Email</dt>
+                  <dd className="mt-1 text-sm font-medium text-gray-900">
+                    {gmc.riskDetails.businessInformation.email ? 'Found' : 'Missing'}
+                  </dd>
+                  {gmc.riskDetails.businessInformation.details?.emails?.length > 0 && (
+                    <p className="mt-0.5 truncate text-xs text-gray-500">
+                      {gmc.riskDetails.businessInformation.details.emails[0]}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Phone</dt>
+                  <dd className="mt-1 text-sm font-medium text-gray-900">
+                    {gmc.riskDetails.businessInformation.phone ? 'Found' : 'Missing'}
+                  </dd>
+                  {gmc.riskDetails.businessInformation.details?.phones?.length > 0 && (
+                    <p className="mt-0.5 truncate text-xs text-gray-500">
+                      {gmc.riskDetails.businessInformation.details.phones[0]}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Address</dt>
+                  <dd className="mt-1 text-sm font-medium text-gray-900">
+                    {gmc.riskDetails.businessInformation.address ? 'Found' : 'Missing'}
+                  </dd>
+                  {gmc.riskDetails.businessInformation.details?.addresses?.length > 0 && (
+                    <p className="mt-0.5 truncate text-xs text-gray-500">
+                      {gmc.riskDetails.businessInformation.details.addresses[0]}
+                    </p>
+                  )}
+                </div>
+              </dl>
+              {gmc.riskDetails.businessInformation.missing?.length > 0 && (
+                <p className="mt-3 text-sm text-amber-800">
+                  Missing: {gmc.riskDetails.businessInformation.missing.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Ads Compliance */}
       {adsRules.length > 0 && (
         <Card className="mt-6">
@@ -183,36 +384,51 @@ export default function Report() {
 
           {productsAudit && (
             <div className="mt-6 border-t border-gray-100 pt-4">
-              <h3 className="text-sm font-semibold text-gray-900">Product Structured Data</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Product Page Analysis</h3>
               <p className="mt-1 text-xs text-gray-500">
-                Deep scan of up to 5 product pages for JSON-LD Product schema.
+                Candidate pages scored by URL patterns and shopping signals, then top pages scanned.
               </p>
-              <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+              <dl className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                 <div>
-                  <dt className="text-xs text-gray-500">Pages Scanned</dt>
+                  <dt className="text-xs text-gray-500">Candidates</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.candidateCount ?? 0}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Scanned</dt>
                   <dd className="text-lg font-semibold text-gray-900">{productsAudit.scannedPages ?? 0}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Schemas Detected</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.detectedProducts ?? 0}</dd>
+                  <dt className="text-xs text-gray-500">Product Schema</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.summary?.withSchema ?? productsAudit.detectedProducts ?? 0}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Valid Schemas</dt>
-                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.validProducts ?? 0}</dd>
+                  <dt className="text-xs text-gray-500">Price Detected</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.summary?.withPrice ?? 0}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Add to Cart</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.summary?.withAddToCart ?? 0}</dd>
                 </div>
               </dl>
               {productsAudit.missingFields?.length > 0 && (
                 <p className="mt-3 text-sm text-amber-700">
-                  Missing fields: {productsAudit.missingFields.join(', ')}
+                  Missing required fields: {productsAudit.missingFields.join(', ')}
                 </p>
               )}
               {productsAudit.productPages?.length > 0 && (
-                <ul className="mt-3 space-y-1 text-xs text-gray-500">
+                <ul className="mt-3 space-y-2 text-xs text-gray-500">
                   {productsAudit.productPages.slice(0, 5).map((page) => (
-                    <li key={page.url} className="truncate">
-                      {page.valid ? '✓' : page.hasProductSchema ? '!' : '✗'}{' '}
-                      {page.url}
-                      {page.missingFields?.length > 0 && ` — missing: ${page.missingFields.join(', ')}`}
+                    <li key={page.url}>
+                      <div className="truncate">
+                        {page.valid ? '✓' : page.hasProductSchema ? '!' : '✗'} score {page.score ?? '—'} — {page.url}
+                      </div>
+                      {page.signals && (
+                        <div className="mt-0.5 flex flex-wrap gap-1">
+                          {page.signals.schema && <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">schema</span>}
+                          {page.signals.price && <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">price</span>}
+                          {page.signals.addToCart && <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700">addToCart</span>}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

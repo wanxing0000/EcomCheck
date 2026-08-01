@@ -1,6 +1,16 @@
 import { crawl, CrawlerError, CrawlerErrorCode } from '../services/crawler.js'
 import { runRules } from '../rules/index.js'
-import { scoreAudit } from '../services/scorer.js'
+import { scoreAudit, scoreCategory } from '../services/scorer.js'
+
+function buildGmcRiskDetails(gmcRules) {
+  const byId = Object.fromEntries(gmcRules.map((rule) => [rule.id, rule]))
+
+  return {
+    returnPolicy: byId.G003?.policyQuality ?? null,
+    priceConsistency: byId.G006?.priceRisks ?? null,
+    businessInformation: byId.G007?.businessInfo ?? null,
+  }
+}
 
 export const ERROR_STATUS = {
   [CrawlerErrorCode.INVALID_URL]: 400,
@@ -75,6 +85,9 @@ export async function handleAudit(req, res) {
     const crawlResult = await crawl(url)
     const ruleResults = runRules(crawlResult)
     const { score, issues, recommendations, summary } = scoreAudit(ruleResults)
+    const gmc = scoreCategory(ruleResults, 'gmc')
+    const gmcRules = ruleResults.filter((rule) => rule.category === 'gmc')
+    const riskDetails = buildGmcRiskDetails(gmcRules)
 
     sendJson(res, 200, {
       success: true,
@@ -85,6 +98,16 @@ export async function handleAudit(req, res) {
         recommendations,
         rules: ruleResults,
         summary,
+        gmc: {
+          score: gmc.score,
+          issues: gmc.issues,
+          warnings: gmc.warnings,
+          recommendations: gmc.recommendations,
+          summary: gmc.summary,
+          passedRules: gmc.passedRules,
+          rules: gmc.rules,
+          riskDetails,
+        },
       },
     })
   } catch (err) {
