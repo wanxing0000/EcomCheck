@@ -1,0 +1,62 @@
+[
+  {
+    "name": "allbirds",
+    "url": "https://www.allbirds.com",
+    "platform": "shopify",
+    "expect": {
+      "gmc": true,
+      "productSchema": true,
+      "refundPolicy": true
+    }
+  },
+  {
+    "name": "woocommerce",
+    "url": "https://woocommerce.com",
+    "platform": "woocommerce",
+    "expect": {
+      "gmc": false,
+      "productSchema": false,
+      "refundPolicy": true
+    }
+  },
+  {
+    "name": "cosmichorrorshop",
+    "url": "https://cosmichorrorshop.com",
+    "platform": "woocommerce",
+    "expect": {
+      "gmc": true,
+      "productSchema": true,
+      "refundPolicy": true
+    }
+  },
+  {
+    "name": "narlasfableandfurcandles",
+    "url": "https://narlasfableandfurcandles.co.uk",
+    "platform": "shopify",
+    "expect": {
+      "gmc": true,
+      "productSchema": true,
+      "refundPolicy": true
+    }
+  },
+  {
+    "name": "foundersparts",
+    "url": "https://foundersparts.com",
+    "platform": "shopify",
+    "expect": {
+      "gmc": true,
+      "productSchema": true,
+      "refundPolicy": true
+    }
+  },
+  {
+    "name": "bshivedesign",
+    "url": "https://bshivedesign.co.uk",
+    "platform": "shopify",
+    "expect": {
+      "gmc": true,
+      "productSchema": true,
+      "refundPolicy": true
+    }
+  }
+]

@@ -2,6 +2,7 @@ import { crawl, CrawlerError, CrawlerErrorCode } from '../services/crawler.js'
 import { runRules } from '../rules/index.js'
 import { scoreAudit, scoreCategory } from '../services/scorer.js'
 import { buildProfessionalReport } from '../services/reportBuilder.js'
+import { saveReport } from '../services/reportStorage.js'
 
 function buildGmcRiskDetails(gmcRules) {
   const byId = Object.fromEntries(gmcRules.map((rule) => [rule.id, rule]))
@@ -101,29 +102,37 @@ export async function handleAudit(req, res) {
     const mergedGmcWarnings = [...gmc.warnings, ...g006Warnings]
     const report = buildProfessionalReport(ruleResults, g006Warnings)
 
+    const auditData = {
+      ...crawlResult,
+      score,
+      issues,
+      recommendations,
+      rules: ruleResults,
+      summary,
+      report,
+      gmc: {
+        score: gmc.score,
+        issues: gmc.issues,
+        warnings: mergedGmcWarnings,
+        recommendations: gmc.recommendations,
+        summary: {
+          ...gmc.summary,
+          warnings: mergedGmcWarnings.length,
+        },
+        passedRules: gmc.passedRules,
+        rules: gmc.rules,
+        riskDetails,
+      },
+    }
+
+    const saved = await saveReport(url, auditData)
+
     sendJson(res, 200, {
       success: true,
       data: {
-        ...crawlResult,
-        score,
-        issues,
-        recommendations,
-        rules: ruleResults,
-        summary,
-        report,
-        gmc: {
-          score: gmc.score,
-          issues: gmc.issues,
-          warnings: mergedGmcWarnings,
-          recommendations: gmc.recommendations,
-          summary: {
-            ...gmc.summary,
-            warnings: mergedGmcWarnings.length,
-          },
-          passedRules: gmc.passedRules,
-          rules: gmc.rules,
-          riskDetails,
-        },
+        ...auditData,
+        reportId: saved.id,
+        savedAt: saved.createdAt,
       },
     })
   } catch (err) {

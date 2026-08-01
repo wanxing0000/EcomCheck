@@ -26,3 +26,6 @@ Thumbs.db
 
 # Vite
 *.local
+
+# Stored audit reports (local file storage)
+data/reports/

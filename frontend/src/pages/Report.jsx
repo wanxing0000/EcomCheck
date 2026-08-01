@@ -168,6 +168,25 @@ export default function Report() {
 
   const overallScore = professionalReport.scores?.overall ?? score
 
+  function exportReportJson() {
+    const exportPayload = {
+      reportId: crawlResult.reportId || null,
+      savedAt: crawlResult.savedAt || null,
+      url: crawlResult.url || url,
+      exportedAt: new Date().toISOString(),
+      ...crawlResult,
+    }
+
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' })
+    const objectUrl = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const host = (crawlResult.url || url || 'report').replace(/^https?:\/\//, '').replace(/[^\w.-]+/g, '-')
+    anchor.href = objectUrl
+    anchor.download = `ecomcheck-${host}-${Date.now()}.json`
+    anchor.click()
+    URL.revokeObjectURL(objectUrl)
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
@@ -179,7 +198,7 @@ export default function Report() {
           <p className="mt-2 break-all text-gray-500">{crawlResult.url || url}</p>
           <p className="mt-1 text-xs text-gray-400">
             Scanned on{' '}
-            {new Date().toLocaleDateString('en-US', {
+            {new Date(crawlResult.savedAt || Date.now()).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
@@ -187,6 +206,21 @@ export default function Report() {
               minute: '2-digit',
             })}
           </p>
+          {crawlResult.reportId && (
+            <p className="mt-1 text-xs text-gray-400">Report ID: {crawlResult.reportId}</p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={exportReportJson}>
+              Export JSON
+            </Button>
+            {crawlResult.reportId && (
+              <Link to={`/report/${crawlResult.reportId}`}>
+                <Button variant="secondary" size="sm">
+                  View Public Report
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {overallScore != null && (

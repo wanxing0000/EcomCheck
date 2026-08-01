@@ -6,7 +6,8 @@
     "dev:api": "node scripts/dev-server.js",
     "dev:frontend": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend",
-    "vercel:dev": "vercel dev"
+    "vercel:dev": "vercel dev",
+    "test:audit": "node tests/auditRunner.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0"
