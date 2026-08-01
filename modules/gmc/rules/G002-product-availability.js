@@ -1,6 +1,6 @@
 import { countPagesWithSignal, getScannedProductPages, pagesWithSchema } from './_helpers.js'
 
-/** @type {import('../types.js').Rule} */
+/** @type {import('../../_shared/types.js').Rule} */
 export const productAvailabilityRule = {
   id: 'G002',
   name: 'Product Availability',

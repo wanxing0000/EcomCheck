@@ -1,4 +1,4 @@
-/** @type {import('../types.js').Rule} */
+/** @type {import('../../_shared/types.js').Rule} */
 export const productJsonLdRule = {
   id: 'A003',
   name: 'Product JSON-LD Detection',

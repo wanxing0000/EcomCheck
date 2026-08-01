@@ -3,35 +3,9 @@ import { aboutUsRule } from './trust/T002-about-us.js'
 import { privacyPolicyRule } from './policy/P001-privacy-policy.js'
 import { refundPolicyRule } from './policy/P002-refund-policy.js'
 import { shippingPolicyRule } from './policy/P003-shipping-policy.js'
-import { httpsRule } from './technical/K001-https.js'
-import { robotsRule } from './technical/K002-robots.js'
-import { sitemapRule } from './technical/K003-sitemap.js'
-import { metaBasicRule } from './technical/K004-meta-basic.js'
-import { metaPixelRule } from './ads/A001-meta-pixel.js'
-import { googleTagRule } from './ads/A002-google-tag.js'
-import { productJsonLdRule } from './ads/A003-product-jsonld.js'
-import { productPriceRule } from './gmc/G001-product-price.js'
-import { productAvailabilityRule } from './gmc/G002-product-availability.js'
-import { returnPolicyRule } from './gmc/G003-return-policy.js'
-import { shippingInfoRule } from './gmc/G004-shipping-info.js'
-import { productIdentifiersRule } from './gmc/G005-product-identifiers.js'
-import { productPriceConsistencyRule } from './gmc/G006-price-consistency.js'
-import { businessInformationRule } from './gmc/G007-business-information.js'
-
-/** @type {import('./types.js').Rule[]} */
-export const allRules = [
-  contactInformationRule,
-  aboutUsRule,
-  privacyPolicyRule,
-  refundPolicyRule,
-  shippingPolicyRule,
-  httpsRule,
-  robotsRule,
-  sitemapRule,
-  metaBasicRule,
-  metaPixelRule,
-  googleTagRule,
-  productJsonLdRule,
+import { runModuleRules } from '../modules/_shared/runModuleRules.js'
+import { getAllModuleRules, getModuleRulesForExecution, runAuditModules } from '../modules/index.js'
+import {
   productPriceRule,
   productAvailabilityRule,
   returnPolicyRule,
@@ -39,32 +13,35 @@ export const allRules = [
   productIdentifiersRule,
   productPriceConsistencyRule,
   businessInformationRule,
+} from '../modules/gmc/rules/index.js'
+import { metaPixelRule, googleTagRule, productJsonLdRule } from '../modules/ads/rules/index.js'
+import { httpsRule, robotsRule, sitemapRule, metaBasicRule } from '../modules/technical/rules/index.js'
+
+/** Legacy trust & policy rules — will move to modules in a future phase. */
+const legacyRules = [
+  contactInformationRule,
+  aboutUsRule,
+  privacyPolicyRule,
+  refundPolicyRule,
+  shippingPolicyRule,
 ]
+
+/** @type {import('./types.js').Rule[]} */
+export const allRules = [...legacyRules, ...getAllModuleRules()]
 
 /**
  * Run all registered rules against audit data.
  * @param {object} auditData - Crawl result from crawler.js
+ * @param {{ modules?: string[] }} [options]
  * @returns {import('./types.js').RuleResult[]}
  */
-export function runRules(auditData) {
-  return allRules.map((rule) => {
-    const result = rule.check(auditData)
-
-    return {
-      id: rule.id,
-      name: rule.name,
-      category: rule.category,
-      severity: rule.severity,
-      description: rule.description,
-      passed: result.passed,
-      message: result.message || '',
-      recommendation: result.recommendation || '',
-      ...(result.policyQuality && { policyQuality: result.policyQuality }),
-      ...(result.priceRisks && { priceRisks: result.priceRisks }),
-      ...(result.businessInfo && { businessInfo: result.businessInfo }),
-    }
-  })
+export function runRules(auditData, options = {}) {
+  const legacyResults = runModuleRules(legacyRules, auditData)
+  const moduleResults = runModuleRules(getModuleRulesForExecution(options.modules), auditData)
+  return [...legacyResults, ...moduleResults]
 }
+
+export { runAuditModules }
 
 export {
   contactInformationRule,

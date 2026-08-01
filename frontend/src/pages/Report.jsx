@@ -25,6 +25,90 @@ const CATEGORY_LABELS = {
   gmc: 'GMC',
 }
 
+const MODULE_LABELS = {
+  gmc: 'GMC',
+  ads: 'Ads',
+  technical: 'Technical',
+  seo: 'SEO',
+  performance: 'Performance',
+}
+
+function getCoverageLabelStyle(label) {
+  switch (label) {
+    case 'Excellent':
+      return 'text-green-700 bg-green-50 border-green-200'
+    case 'Good':
+      return 'text-blue-700 bg-blue-50 border-blue-200'
+    case 'Needs Improvement':
+      return 'text-amber-700 bg-amber-50 border-amber-200'
+    case 'Critical':
+      return 'text-red-700 bg-red-50 border-red-200'
+    default:
+      return 'text-gray-700 bg-gray-50 border-gray-200'
+  }
+}
+
+function getHealthStatusStyle(status) {
+  switch (status) {
+    case 'healthy':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'critical':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-amber-100 text-amber-900 border-amber-200'
+  }
+}
+
+function getHealthStatusLabel(status) {
+  switch (status) {
+    case 'healthy':
+      return 'Healthy'
+    case 'critical':
+      return 'Critical'
+    default:
+      return 'Needs Attention'
+  }
+}
+
+function getCoverageEntries(professionalReport) {
+  if (professionalReport.coverage) {
+    return Object.entries(professionalReport.coverage).map(([id, item]) => ({
+      id,
+      label: MODULE_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1),
+      score: item.score,
+      statusLabel: item.label,
+    }))
+  }
+
+  const scores = professionalReport.scores || {}
+  return Object.entries(scores)
+    .filter(([id, value]) => id !== 'overall' && value != null)
+    .map(([id, value]) => ({
+      id,
+      label: MODULE_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1),
+      score: value,
+      statusLabel: value >= 90 ? 'Excellent' : value >= 70 ? 'Good' : value >= 50 ? 'Needs Improvement' : 'Critical',
+    }))
+}
+
+function RoadmapItem({ item }) {
+  return (
+    <li className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{item.category}</span>
+      </div>
+      <p className="mt-2 text-sm text-gray-600">{item.reason}</p>
+      {item.expectedImpact && (
+        <p className="mt-1 text-sm text-gray-500">
+          <span className="font-medium text-gray-700">Expected impact: </span>
+          {item.expectedImpact}
+        </p>
+      )}
+    </li>
+  )
+}
+
 function scoreColor(value) {
   if (value >= 80) return '#22c55e'
   if (value >= 60) return '#f59e0b'
@@ -167,6 +251,9 @@ export default function Report() {
   }
 
   const overallScore = professionalReport.scores?.overall ?? score
+  const coverageEntries = getCoverageEntries(professionalReport)
+  const executiveSummary = professionalReport.executiveSummary
+  const improvementRoadmap = professionalReport.improvementRoadmap
 
   function exportReportJson() {
     const exportPayload = {
@@ -234,8 +321,53 @@ export default function Report() {
         )}
       </div>
 
-      {/* Quick Summary */}
-      {professionalReport.quickSummary && (
+      {/* Executive Summary */}
+      {executiveSummary && (
+        <Card className="mt-6 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-900">Executive Summary</h2>
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getHealthStatusStyle(executiveSummary.healthStatus)}`}
+            >
+              {getHealthStatusLabel(executiveSummary.healthStatus)}
+            </span>
+          </div>
+          <p className="mt-3 text-base font-medium leading-relaxed text-gray-900">{executiveSummary.headline}</p>
+          {executiveSummary.summary && (
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">{executiveSummary.summary}</p>
+          )}
+          {executiveSummary.topPriorities?.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-gray-900">Top Priorities</h3>
+              <ol className="mt-3 space-y-3">
+                {executiveSummary.topPriorities.map((item) => (
+                  <li key={item.priority} className="rounded-lg border border-white/80 bg-white/70 px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                        {item.priority}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900">{item.title}</span>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                        {item.category}
+                      </span>
+                    </div>
+                    {item.impact && <p className="mt-2 text-sm text-gray-600">{item.impact}</p>}
+                    {item.action && (
+                      <p className="mt-1 text-sm text-gray-600">
+                        <span className="font-medium text-gray-800">Action: </span>
+                        {item.action}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Quick Summary (legacy fallback) */}
+      {!executiveSummary && professionalReport.quickSummary && (
         <Card className="mt-6 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
           <h2 className="text-lg font-semibold text-gray-900">Quick Summary</h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-700">{professionalReport.quickSummary}</p>
@@ -252,6 +384,77 @@ export default function Report() {
             <ScoreRing label="Ads" value={professionalReport.scores.ads} />
             <ScoreRing label="Technical" value={professionalReport.scores.technical} />
           </div>
+        </Card>
+      )}
+
+      {coverageEntries.length > 0 && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Audit Coverage</h2>
+          <p className="mt-1 text-sm text-gray-500">Module readiness across your store audit areas.</p>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {coverageEntries.map((module) => (
+              <div
+                key={module.id}
+                className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{module.label}</span>
+                  <span className="text-2xl font-bold text-gray-900">{module.score}</span>
+                </div>
+                <span
+                  className={`mt-3 inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getCoverageLabelStyle(module.statusLabel)}`}
+                >
+                  {module.statusLabel}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {improvementRoadmap && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Improvement Roadmap</h2>
+          <p className="mt-1 text-sm text-gray-500">Prioritized actions to improve store readiness.</p>
+
+          {improvementRoadmap.immediate?.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-red-700">Fix Now</h3>
+              <ul className="mt-3 space-y-3">
+                {improvementRoadmap.immediate.map((item, index) => (
+                  <RoadmapItem key={`immediate-${index}`} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {improvementRoadmap.recommended?.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-700">Improve Later</h3>
+              <ul className="mt-3 space-y-3">
+                {improvementRoadmap.recommended.map((item, index) => (
+                  <RoadmapItem key={`recommended-${index}`} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {improvementRoadmap.future?.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-blue-700">Future</h3>
+              <ul className="mt-3 space-y-3">
+                {improvementRoadmap.future.map((item, index) => (
+                  <RoadmapItem key={`future-${index}`} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!improvementRoadmap.immediate?.length &&
+            !improvementRoadmap.recommended?.length &&
+            !improvementRoadmap.future?.length && (
+              <p className="mt-4 text-sm text-green-700">No improvement actions required for the current rule set.</p>
+            )}
         </Card>
       )}
 

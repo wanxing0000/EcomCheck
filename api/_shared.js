@@ -1,6 +1,7 @@
 import { crawl, CrawlerError, CrawlerErrorCode } from '../services/crawler.js'
 import { runRules } from '../rules/index.js'
-import { scoreAudit, scoreCategory } from '../services/scorer.js'
+import { runAuditModules } from '../modules/index.js'
+import { scoreAudit } from '../services/scorer.js'
 import { buildProfessionalReport } from '../services/reportBuilder.js'
 import { saveReport } from '../services/reportStorage.js'
 
@@ -11,6 +12,16 @@ function buildGmcRiskDetails(gmcRules) {
     returnPolicy: byId.G003?.policyQuality ?? null,
     priceConsistency: byId.G006?.priceRisks ?? null,
     businessInformation: byId.G007?.businessInfo ?? null,
+  }
+}
+
+function toPublicModuleResult(moduleResult) {
+  return {
+    score: moduleResult.score,
+    summary: moduleResult.summary,
+    issues: moduleResult.issues,
+    warnings: moduleResult.warnings,
+    recommendations: moduleResult.recommendations,
   }
 }
 
@@ -73,7 +84,8 @@ export async function handleAudit(req, res) {
     return
   }
 
-  const { url } = body
+  const { url, modules: requestedModules } = body
+  const auditOptions = requestedModules?.length ? { modules: requestedModules } : {}
 
   if (!url) {
     sendJson(res, 400, {
@@ -85,11 +97,15 @@ export async function handleAudit(req, res) {
 
   try {
     const crawlResult = await crawl(url)
-    const ruleResults = runRules(crawlResult)
+    const ruleResults = runRules(crawlResult, auditOptions)
+    const { results: moduleResults, moduleStatus } = await runAuditModules(crawlResult, auditOptions)
     const { score, issues, recommendations, summary } = scoreAudit(ruleResults)
-    const gmc = scoreCategory(ruleResults, 'gmc')
-    const gmcRules = ruleResults.filter((rule) => rule.category === 'gmc')
-    const riskDetails = buildGmcRiskDetails(gmcRules)
+    const gmc = moduleResults.gmc
+    const riskDetails = gmc ? buildGmcRiskDetails(gmc.rules) : {
+      returnPolicy: null,
+      priceConsistency: null,
+      businessInformation: null,
+    }
 
     const g006Warnings = (riskDetails.priceConsistency?.pageWarnings || []).map((warn) => ({
       id: 'G006',
@@ -99,8 +115,12 @@ export async function handleAudit(req, res) {
       message: warn.message,
     }))
 
-    const mergedGmcWarnings = [...gmc.warnings, ...g006Warnings]
+    const mergedGmcWarnings = gmc ? [...gmc.warnings, ...g006Warnings] : []
     const report = buildProfessionalReport(ruleResults, g006Warnings)
+
+    const publicModules = Object.fromEntries(
+      Object.entries(moduleResults).map(([id, result]) => [id, toPublicModuleResult(result)])
+    )
 
     const auditData = {
       ...crawlResult,
@@ -110,19 +130,25 @@ export async function handleAudit(req, res) {
       rules: ruleResults,
       summary,
       report,
-      gmc: {
-        score: gmc.score,
-        issues: gmc.issues,
-        warnings: mergedGmcWarnings,
-        recommendations: gmc.recommendations,
-        summary: {
-          ...gmc.summary,
-          warnings: mergedGmcWarnings.length,
-        },
-        passedRules: gmc.passedRules,
-        rules: gmc.rules,
-        riskDetails,
-      },
+      moduleStatus,
+      modules: publicModules,
+      ...(gmc
+        ? {
+            gmc: {
+              score: gmc.score,
+              issues: gmc.issues,
+              warnings: mergedGmcWarnings,
+              recommendations: gmc.recommendations,
+              summary: {
+                ...gmc.summary,
+                warnings: mergedGmcWarnings.length,
+              },
+              passedRules: gmc.passedRules,
+              rules: gmc.rules,
+              riskDetails,
+            },
+          }
+        : {}),
     }
 
     let saved = null

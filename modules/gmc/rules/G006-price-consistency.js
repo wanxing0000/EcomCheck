@@ -105,7 +105,7 @@ function analyzePagePricing(page) {
   }
 }
 
-/** @type {import('../types.js').Rule} */
+/** @type {import('../../_shared/types.js').Rule} */
 export const productPriceConsistencyRule = {
   id: 'G006',
   name: 'Product Price Consistency',

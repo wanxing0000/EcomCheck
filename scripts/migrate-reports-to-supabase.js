@@ -8,6 +8,8 @@
  * Usage:
  *   node scripts/migrate-reports-to-supabase.js
  */
+import './bootstrap-env.js'
+import 'dotenv/config'
 import { readdir, readFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'

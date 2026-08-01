@@ -1,7 +1,11 @@
 /**
  * Local development server for API routes.
  * Run: npm run dev:api
+ *
+ * Loads root .env via dotenv/config (local dev only — not used on Vercel).
  */
+import './bootstrap-env.js'
+import 'dotenv/config'
 import { createServer } from 'http'
 import healthHandler from '../api/health.js'
 import auditHandler from '../api/audit.js'

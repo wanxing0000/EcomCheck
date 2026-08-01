@@ -9,7 +9,7 @@ export default function handler(req, res) {
 
   sendJson(res, 200, {
     service: 'ecomcheck-api',
-    version: '0.6.0',
+    version: '0.6.3',
     endpoints: {
       health: 'GET /api/health',
       audit: 'POST /api/audit',

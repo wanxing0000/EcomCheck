@@ -1,4 +1,4 @@
-/** @type {import('../types.js').Rule} */
+/** @type {import('../../_shared/types.js').Rule} */
 export const businessInformationRule = {
   id: 'G007',
   name: 'Business Information',

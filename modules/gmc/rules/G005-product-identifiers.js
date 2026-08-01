@@ -2,7 +2,7 @@ import { getProductSchemas, getScannedProductPages, pagesWithSchema } from './_h
 
 const IDENTIFIERS = ['brand', 'sku', 'gtin', 'mpn']
 
-/** @type {import('../types.js').Rule} */
+/** @type {import('../../_shared/types.js').Rule} */
 export const productIdentifiersRule = {
   id: 'G005',
   name: 'Product Identifiers',

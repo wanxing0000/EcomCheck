@@ -1,4 +1,4 @@
-/** @type {import('../types.js').Rule} */
+/** @type {import('../../_shared/types.js').Rule} */
 export const metaPixelRule = {
   id: 'A001',
   name: 'Meta Pixel Detection',

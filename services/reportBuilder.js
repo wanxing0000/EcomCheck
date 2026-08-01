@@ -153,6 +153,95 @@ function buildQuickSummary(scores, issueCounts) {
   return `${overall} compliance item(s) were found. Address them to improve trust, ads performance, and marketplace readiness.`
 }
 
+function getCoverageLabel(score) {
+  if (score == null) return null
+  if (score >= 90) return 'Excellent'
+  if (score >= 70) return 'Good'
+  if (score >= 50) return 'Needs Improvement'
+  return 'Critical'
+}
+
+function buildCoverage(scores) {
+  /** @type {Record<string, { score: number, label: string }>} */
+  const coverage = {}
+
+  for (const [key, score] of Object.entries(scores)) {
+    if (key === 'overall' || score == null) continue
+    coverage[key] = {
+      score,
+      label: getCoverageLabel(score),
+    }
+  }
+
+  return coverage
+}
+
+function buildHealthStatus(scores, issueCounts) {
+  if (issueCounts.total === 0) return 'healthy'
+  if (issueCounts.highRisk > 0 || scores.overall < 50) return 'critical'
+  if (scores.overall >= 85 && issueCounts.highRisk === 0) return 'healthy'
+  return 'needs_attention'
+}
+
+function buildExecutiveHeadline(healthStatus, issueCounts) {
+  if (healthStatus === 'healthy' && issueCounts.total === 0) {
+    return 'Your store is in excellent shape for Google Shopping and advertising.'
+  }
+
+  if (healthStatus === 'healthy') {
+    return 'Your store is generally healthy, with a few optional improvements available.'
+  }
+
+  if (healthStatus === 'critical') {
+    return 'Your store has critical compliance gaps that should be fixed before scaling ads or Google Shopping.'
+  }
+
+  return 'Your store is generally healthy, but several trust and advertising signals can be improved.'
+}
+
+function buildTopPriorities(allIssues, limit = 5) {
+  const severityOrder = { high: 0, medium: 1, low: 2, warning: 3 }
+
+  return [...allIssues]
+    .sort((a, b) => (severityOrder[a.severity] ?? 9) - (severityOrder[b.severity] ?? 9))
+    .slice(0, limit)
+    .map((issue, index) => ({
+      priority: index + 1,
+      title: issue.title,
+      category: issue.categoryLabel || issue.category,
+      impact: issue.impact,
+      action: issue.fixSuggestion,
+    }))
+}
+
+function buildImprovementRoadmap(allIssues) {
+  const toItem = (issue) => ({
+    title: issue.title,
+    category: issue.categoryLabel || issue.category,
+    reason: issue.message,
+    expectedImpact: issue.impact,
+  })
+
+  return {
+    immediate: allIssues.filter((issue) => issue.severity === 'high').map(toItem),
+    recommended: allIssues.filter((issue) => issue.severity === 'medium').map(toItem),
+    future: allIssues
+      .filter((issue) => issue.severity === 'low' || issue.severity === 'warning')
+      .map(toItem),
+  }
+}
+
+function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary) {
+  const healthStatus = buildHealthStatus(scores, issueCounts)
+
+  return {
+    headline: buildExecutiveHeadline(healthStatus, issueCounts),
+    healthStatus,
+    summary: quickSummary,
+    topPriorities: buildTopPriorities(allIssues),
+  }
+}
+
 /**
  * Build seller-facing professional audit report from rule results.
  * Does not change rule pass/fail outcomes — presentation layer only.
@@ -199,35 +288,39 @@ export function buildProfessionalReport(ruleResults, extraWarnings = []) {
 
   const gmcHighRisk = issuesByCategory.gmc.filter((i) => i.severity === 'high').length
 
-  return {
-    quickSummary: buildQuickSummary(
-      {
-        overall: overallResult.score,
-        gmc: gmcResult.score,
-        ads: adsResult.score,
-        technical: technicalResult.score,
-      },
-      {
-        overall: allIssues.length,
-        gmc: issuesByCategory.gmc.length,
-        highRisk: allIssues.filter((i) => i.severity === 'high').length,
-        gmcHighRisk,
-      }
+  const scores = {
+    overall: overallResult.score,
+    gmc: gmcResult.score,
+    ads: adsResult.score,
+    technical: technicalResult.score,
+  }
+
+  const issueCounts = {
+    total: allIssues.length,
+    highRisk: allIssues.filter((i) => i.severity === 'high').length,
+    attention: allIssues.filter((i) => i.severity === 'medium').length,
+    recommendation: allIssues.filter((i) => i.severity === 'low' || i.severity === 'warning').length,
+    byCategory: Object.fromEntries(
+      Object.entries(issuesByCategory).map(([key, items]) => [key, items.length])
     ),
-    scores: {
-      overall: overallResult.score,
-      gmc: gmcResult.score,
-      ads: adsResult.score,
-      technical: technicalResult.score,
-    },
+    gmc: issuesByCategory.gmc.length,
+    gmcHighRisk,
+  }
+
+  const quickSummary = buildQuickSummary(scores, issueCounts)
+
+  return {
+    quickSummary,
+    executiveSummary: buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary),
+    improvementRoadmap: buildImprovementRoadmap(allIssues),
+    coverage: buildCoverage(scores),
+    scores,
     issueCounts: {
-      total: allIssues.length,
-      highRisk: allIssues.filter((i) => i.severity === 'high').length,
-      attention: allIssues.filter((i) => i.severity === 'medium').length,
-      recommendation: allIssues.filter((i) => i.severity === 'low' || i.severity === 'warning').length,
-      byCategory: Object.fromEntries(
-        Object.entries(issuesByCategory).map(([key, items]) => [key, items.length])
-      ),
+      total: issueCounts.total,
+      highRisk: issueCounts.highRisk,
+      attention: issueCounts.attention,
+      recommendation: issueCounts.recommendation,
+      byCategory: issueCounts.byCategory,
     },
     issues: allIssues,
     issuesByCategory,
