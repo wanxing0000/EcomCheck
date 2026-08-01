@@ -15,7 +15,7 @@ import { productAvailabilityRule } from './gmc/G002-product-availability.js'
 import { returnPolicyRule } from './gmc/G003-return-policy.js'
 import { shippingInfoRule } from './gmc/G004-shipping-info.js'
 import { productIdentifiersRule } from './gmc/G005-product-identifiers.js'
-import { productPriceConsistencyRule } from './gmc/G006-product-price-consistency.js'
+import { productPriceConsistencyRule } from './gmc/G006-price-consistency.js'
 import { businessInformationRule } from './gmc/G007-business-information.js'
 
 /** @type {import('./types.js').Rule[]} */

@@ -15,6 +15,90 @@ const PAGE_LABELS = {
   shippingPolicy: 'Shipping Policy',
 }
 
+const CATEGORY_ORDER = ['trust', 'policy', 'technical', 'ads', 'gmc']
+
+const CATEGORY_LABELS = {
+  trust: 'Trust',
+  policy: 'Policy',
+  technical: 'Technical',
+  ads: 'Ads',
+  gmc: 'GMC',
+}
+
+function scoreColor(value) {
+  if (value >= 80) return '#22c55e'
+  if (value >= 60) return '#f59e0b'
+  return '#ef4444'
+}
+
+function SeverityBadge({ severity, label }) {
+  const styles = {
+    high: 'bg-red-100 text-red-800 border-red-200',
+    medium: 'bg-amber-100 text-amber-900 border-amber-200',
+    low: 'bg-blue-100 text-blue-800 border-blue-200',
+    warning: 'bg-sky-50 text-sky-800 border-sky-200',
+  }
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[severity] || styles.medium}`}>
+      {label || severity}
+    </span>
+  )
+}
+
+function IssueCard({ issue }) {
+  const borderStyles = {
+    high: 'border-red-200 bg-red-50',
+    medium: 'border-amber-200 bg-amber-50',
+    low: 'border-blue-200 bg-blue-50',
+    warning: 'border-sky-200 bg-sky-50',
+  }
+
+  return (
+    <li className={`rounded-lg border px-4 py-4 ${borderStyles[issue.severity] || borderStyles.medium}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded bg-white/70 px-1.5 py-0.5 text-xs font-bold text-gray-700">{issue.id}</span>
+        <SeverityBadge severity={issue.severity} label={issue.severityLabel} />
+      </div>
+      <h4 className="mt-2 text-sm font-semibold text-gray-900">{issue.title}</h4>
+      <p className="mt-1 text-sm text-gray-700">{issue.message}</p>
+      {issue.whyItMatters && (
+        <p className="mt-3 text-sm text-gray-600">
+          <span className="font-medium text-gray-800">Why it matters: </span>
+          {issue.whyItMatters}
+        </p>
+      )}
+      {issue.impact && (
+        <p className="mt-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800">Impact: </span>
+          {issue.impact}
+        </p>
+      )}
+      {issue.fixSuggestion && (
+        <p className="mt-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800">Fix: </span>
+          {issue.fixSuggestion}
+        </p>
+      )}
+    </li>
+  )
+}
+
+function ScoreRing({ label, value, size = 'md' }) {
+  const dim = size === 'lg' ? 'h-24 w-24 border-8 text-3xl' : 'h-16 w-16 border-[5px] text-xl'
+  return (
+    <div className="flex flex-col items-center">
+      <div
+        className={`flex items-center justify-center rounded-full font-bold text-gray-900 ${dim}`}
+        style={{ borderColor: scoreColor(value) }}
+      >
+        {value ?? '—'}
+      </div>
+      <p className="mt-2 text-xs font-medium text-gray-600">{label}</p>
+    </div>
+  )
+}
+
 function StatusBadge({ found }) {
   return (
     <span
@@ -65,12 +149,24 @@ export default function Report() {
 
   if (!url || !crawlResult) return null
 
-  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc } = crawlResult
+  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc, detectionSources, report } = crawlResult
 
   const adsRules = rules?.filter((r) => r.category === 'ads') ?? []
-  const gmcScoreColor = gmc?.score >= 80 ? '#22c55e' : gmc?.score >= 60 ? '#f59e0b' : '#ef4444'
+  const professionalReport = report || {
+    quickSummary: score === 100 ? 'Your store passed all compliance checks.' : `${issues?.length ?? 0} issue(s) found.`,
+    scores: { overall: score, gmc: gmc?.score, ads: null, technical: null },
+    issuesByCategory: {},
+    issues: (issues || []).map((issue) => ({
+      ...issue,
+      title: issue.name,
+      severityLabel: issue.severity,
+      whyItMatters: '',
+      impact: '',
+      fixSuggestion: recommendations?.find((r) => r.id === issue.id)?.text || '',
+    })),
+  }
 
-  const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'
+  const overallScore = professionalReport.scores?.overall ?? score
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -78,7 +174,7 @@ export default function Report() {
         <div>
           <p className="text-sm font-medium text-brand-600">Audit Report</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Website Analysis
+            Store Compliance Audit
           </h1>
           <p className="mt-2 break-all text-gray-500">{crawlResult.url || url}</p>
           <p className="mt-1 text-xs text-gray-400">
@@ -93,61 +189,68 @@ export default function Report() {
           </p>
         </div>
 
-        {score != null && (
+        {overallScore != null && (
           <div className="flex flex-col items-center">
-            <div
-              className="flex h-28 w-28 items-center justify-center rounded-full border-8"
-              style={{ borderColor: scoreColor }}
-            >
-              <span className="text-3xl font-bold text-gray-900">{score}</span>
-            </div>
-            <p className="mt-2 text-sm font-medium text-gray-600">Compliance Score</p>
-            <p className="text-xs text-gray-400">
-              {issues?.length ?? 0} issue{(issues?.length ?? 0) !== 1 ? 's' : ''} found
+            <ScoreRing label="Overall Score" value={overallScore} size="lg" />
+            <p className="mt-2 text-xs text-gray-400">
+              {professionalReport.issueCounts?.total ?? issues?.length ?? 0} item
+              {(professionalReport.issueCounts?.total ?? issues?.length ?? 0) !== 1 ? 's' : ''} to review
             </p>
           </div>
         )}
       </div>
 
-      {/* Issues & Recommendations */}
-      {(issues?.length > 0 || recommendations?.length > 0) && (
-        <Card className="mt-6">
-          <h2 className="text-lg font-semibold text-gray-900">Compliance Issues</h2>
-          {issues?.length > 0 && (
-            <ul className="mt-4 space-y-3">
-              {issues.map((issue) => (
-                <li
-                  key={issue.id}
-                  className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3"
-                >
-                  <span className="mt-0.5 shrink-0 rounded bg-red-200 px-1.5 py-0.5 text-xs font-bold text-red-700">
-                    {issue.id}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-red-900">{issue.name}</p>
-                    <p className="mt-0.5 text-sm text-red-700">{issue.message}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {recommendations?.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-900">Recommendations</h3>
-              <ul className="mt-2 space-y-2">
-                {recommendations.map((rec) => (
-                  <li key={rec.id} className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="shrink-0 font-medium uppercase text-amber-600">{rec.priority}</span>
-                    <span>{rec.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {/* Quick Summary */}
+      {professionalReport.quickSummary && (
+        <Card className="mt-6 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
+          <h2 className="text-lg font-semibold text-gray-900">Quick Summary</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-700">{professionalReport.quickSummary}</p>
         </Card>
       )}
 
-      {score === 100 && (
+      {/* Score Dashboard */}
+      {professionalReport.scores && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Compliance Scores</h2>
+          <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-4">
+            <ScoreRing label="Overall" value={professionalReport.scores.overall} />
+            <ScoreRing label="GMC" value={professionalReport.scores.gmc} />
+            <ScoreRing label="Ads" value={professionalReport.scores.ads} />
+            <ScoreRing label="Technical" value={professionalReport.scores.technical} />
+          </div>
+        </Card>
+      )}
+
+      {/* Professional Issues by Category */}
+      {professionalReport.issues?.length > 0 ? (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Issues & Recommendations</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Prioritized findings grouped by area. Fix high-risk items first.
+          </p>
+          <div className="mt-6 space-y-8">
+            {CATEGORY_ORDER.map((category) => {
+              const categoryIssues =
+                professionalReport.issuesByCategory?.[category] ||
+                professionalReport.issues.filter((item) => item.category === category)
+              if (!categoryIssues?.length) return null
+
+              return (
+                <div key={category}>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    {CATEGORY_LABELS[category] || category}
+                  </h3>
+                  <ul className="mt-3 space-y-3">
+                    {categoryIssues.map((issue) => (
+                      <IssueCard key={`${issue.id}-${issue.severity}`} issue={issue} />
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      ) : (
         <Card className="mt-6 border-green-200 bg-green-50">
           <p className="text-sm font-medium text-green-800">
             All compliance checks passed for the current rule set.
@@ -168,7 +271,7 @@ export default function Report() {
             <div className="flex flex-col items-center">
               <div
                 className="flex h-20 w-20 items-center justify-center rounded-full border-[6px]"
-                style={{ borderColor: gmcScoreColor }}
+                style={{ borderColor: scoreColor(gmc?.score) }}
               >
                 <span className="text-2xl font-bold text-gray-900">{gmc.score}</span>
               </div>
@@ -240,6 +343,69 @@ export default function Report() {
               </ul>
             </div>
           )}
+
+          {gmc.riskDetails?.priceConsistency?.details?.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Price Consistency Details</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Per-page schema vs display price comparison (G006).
+              </p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                      <th className="py-2 pr-3">Product URL</th>
+                      <th className="py-2 pr-3">Schema Price</th>
+                      <th className="py-2 pr-3">Display Price</th>
+                      <th className="py-2 pr-3">Currency</th>
+                      <th className="py-2">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {gmc.riskDetails.priceConsistency.details.map((item) => {
+                      const resultLabel = {
+                        match: 'Match',
+                        price_mismatch: 'Price Mismatch',
+                        currency_mismatch: 'Currency Mismatch',
+                        missing_display: 'Missing Display',
+                        no_schema: 'No Schema',
+                        no_pricing: 'No Data',
+                      }[item.result] || item.result
+
+                      const resultClass =
+                        item.result === 'match'
+                          ? 'bg-green-100 text-green-700'
+                          : item.result === 'missing_display'
+                            ? 'bg-amber-100 text-amber-800'
+                            : item.result === 'price_mismatch' || item.result === 'currency_mismatch'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-600'
+
+                      return (
+                        <tr key={item.url}>
+                          <td className="py-2 pr-3">
+                            <p className="max-w-[220px] truncate text-gray-900">{item.url}</p>
+                          </td>
+                          <td className="py-2 pr-3 text-gray-900">{item.schemaPrice ?? '—'}</td>
+                          <td className="py-2 pr-3 text-gray-900">{item.displayPrice ?? '—'}</td>
+                          <td className="py-2 pr-3 text-gray-900">
+                            {item.schemaCurrency && item.displayCurrency && item.schemaCurrency !== item.displayCurrency
+                              ? `${item.schemaCurrency} / ${item.displayCurrency}`
+                              : item.currency ?? '—'}
+                          </td>
+                          <td className="py-2">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${resultClass}`}>
+                              {resultLabel}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
@@ -283,27 +449,13 @@ export default function Report() {
 
           {gmc.riskDetails.priceConsistency && (
             <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
-              <h3 className="text-sm font-semibold text-gray-900">Price Consistency</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Price Consistency Summary</h3>
               <p className="mt-1 text-sm text-gray-600">
-                Compared {gmc.riskDetails.priceConsistency.compared ?? 0} of{' '}
-                {gmc.riskDetails.priceConsistency.checked ?? 0} scanned pages ·{' '}
-                {gmc.riskDetails.priceConsistency.consistent ?? 0} consistent
+                {gmc.riskDetails.priceConsistency.matched ?? gmc.riskDetails.priceConsistency.consistent ?? 0} matched ·{' '}
+                {gmc.riskDetails.priceConsistency.priceMismatch ?? 0} price mismatch ·{' '}
+                {gmc.riskDetails.priceConsistency.currencyMismatch ?? 0} currency mismatch ·{' '}
+                {gmc.riskDetails.priceConsistency.missingDisplay ?? 0} missing display
               </p>
-              {gmc.riskDetails.priceConsistency.inconsistent?.length > 0 ? (
-                <ul className="mt-3 space-y-2 text-sm">
-                  {gmc.riskDetails.priceConsistency.inconsistent.map((item) => (
-                    <li key={item.url} className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-                      <p className="truncate font-medium">{item.url}</p>
-                      <p className="mt-0.5">
-                        Schema: {item.schemaPrice} · Displayed: {item.displayPrice}
-                        {item.currency ? ` ${item.currency}` : ''}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm text-green-700">No price mismatches detected on comparable product pages.</p>
-              )}
             </div>
           )}
 
@@ -352,6 +504,82 @@ export default function Report() {
               )}
             </div>
           )}
+        </Card>
+      )}
+
+      {/* Product Pricing Analysis */}
+      {productsAudit?.productPages?.some((page) => page.pricing) && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Product Pricing Analysis</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Schema vs visible price comparison from scanned product pages.
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead>
+                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <th className="py-2 pr-4">Product Page</th>
+                  <th className="py-2 pr-4">Schema Price</th>
+                  <th className="py-2 pr-4">Display Price</th>
+                  <th className="py-2 pr-4">Currency</th>
+                  <th className="py-2">Consistency</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {productsAudit.productPages
+                  .filter((page) => page.pricing)
+                  .slice(0, 5)
+                  .map((page) => {
+                    const currency =
+                      page.pricing?.schema?.currency ||
+                      page.pricing?.display?.currency ||
+                      page.priceConsistency?.currency ||
+                      '—'
+                    const consistent = page.priceConsistency?.consistent
+                    const consistencyLabel =
+                      consistent === true ? 'Match' : consistent === false ? 'Mismatch' : 'N/A'
+
+                    return (
+                      <tr key={page.url}>
+                        <td className="py-3 pr-4">
+                          <p className="max-w-xs truncate font-medium text-gray-900">{page.url}</p>
+                          {page.pricing?.display?.source && (
+                            <p className="mt-0.5 text-xs text-gray-400">via {page.pricing.display.source}</p>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 text-gray-900">
+                          {page.pricing?.schema?.price ?? '—'}
+                          {page.pricing?.schema?.source && (
+                            <span className="block text-xs text-gray-400">{page.pricing.schema.source}</span>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 text-gray-900">
+                          {page.pricing?.display?.price ?? '—'}
+                          {page.pricing?.display?.type && (
+                            <span className="block text-xs text-gray-400">{page.pricing.display.type}</span>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 text-gray-900">{currency}</td>
+                        <td className="py-3">
+                          <span
+                            className={[
+                              'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
+                              consistent === true
+                                ? 'bg-green-100 text-green-700'
+                                : consistent === false
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-gray-100 text-gray-500',
+                            ].join(' ')}
+                          >
+                            {consistencyLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
@@ -503,6 +731,73 @@ export default function Report() {
           </div>
         </dl>
       </Card>
+
+      {import.meta.env.DEV && detectionSources && (
+        <Card className="mt-6 border-dashed border-brand-200 bg-brand-50/40">
+          <h2 className="text-lg font-semibold text-gray-900">Detection Sources</h2>
+          <p className="mt-1 text-xs text-gray-500">Development debug view — data extraction provenance.</p>
+
+          <div className="mt-4 space-y-4 text-sm">
+            <div>
+              <h3 className="font-medium text-gray-900">Phone</h3>
+              <ul className="mt-1 space-y-1 text-gray-700">
+                {(detectionSources.contact?.phone || []).length > 0 ? (
+                  detectionSources.contact.phone.map((item) => (
+                    <li key={`${item.source}-${item.value}`}>
+                      ✓ {item.source} {item.page ? `(${item.page})` : ''} — {item.value}
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-400">No phone sources detected</li>
+                )}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-medium text-gray-900">Email</h3>
+              <ul className="mt-1 space-y-1 text-gray-700">
+                {(detectionSources.contact?.email || []).slice(0, 5).map((item) => (
+                  <li key={`${item.source}-${item.value}`}>
+                    ✓ {item.source} {item.page ? `(${item.page})` : ''} — {item.value}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {['privacyPolicy', 'refundPolicy', 'shippingPolicy'].map((policyType) => (
+              <div key={policyType}>
+                <h3 className="font-medium text-gray-900">
+                  {policyType.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+                </h3>
+                <ul className="mt-1 space-y-1 text-gray-700">
+                  {(detectionSources.policies?.[policyType] || []).length > 0 ? (
+                    detectionSources.policies[policyType].map((item) => (
+                      <li key={item.url} className="truncate">
+                        ✓ {item.source} — {item.url}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-gray-400">Not detected</li>
+                  )}
+                </ul>
+              </div>
+            ))}
+
+            <div>
+              <h3 className="font-medium text-gray-900">Product</h3>
+              <ul className="mt-1 space-y-1 text-gray-700">
+                {(detectionSources.products?.signals || []).map((signal) => (
+                  <li key={signal}>✓ {signal}</li>
+                ))}
+                <li>
+                  Scanned {detectionSources.products?.scanned ?? 0} /{' '}
+                  {detectionSources.products?.candidates ?? 0} candidates
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Page Content */}
       <Card className="mt-6">

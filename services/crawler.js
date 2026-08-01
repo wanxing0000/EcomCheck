@@ -1,6 +1,7 @@
 import { extractContactInfo, mergeContactInfo, parsePageContent, analyzeReturnPolicyQuality, getBodyTextFromHtml } from './pageContent.js'
 import { detectAdsData } from './adsDetect.js'
 import { scanProductPages } from './productCrawler.js'
+import { buildDetectionSources } from './detectionSources.js'
 import * as cheerio from 'cheerio'
 
 export const CrawlerErrorCode = {
@@ -52,12 +53,13 @@ const PAGE_PATTERNS = {
   },
   privacyPolicy: {
     url: [
-      /\/privacy(?:-policy)?(?:\/|$|\?)/i,
+      /\/privacy[_-]policy(?:\/|$|\?)/i,
+      /\/privacy(?:\/|$|\?)/i,
       /\/policies\/privacy(?:-policy)?(?:\/|$|\?)/i,
       /\/pages\/privacy(?:-policy)?(?:\/|$|\?)/i,
       /\/legal\/privacy(?:\/|$|\?)/i,
     ],
-    text: [/privacy\s*policy/i, /data\s*protection/i, /cookie\s*policy/i],
+    text: [/privacy\s*policy/i, /data\s*protection/i, /cookie\s*policy/i, /privacy\s*statement/i],
   },
   refundPolicy: {
     url: [
@@ -73,6 +75,7 @@ const PAGE_PATTERNS = {
     text: [
       /refund\s*(?:&|and)\s*returns?\s*policy/i,
       /returns?\s*(?:&|and)\s*refunds?\s*policy/i,
+      /returns?\s*(?:&|and)\s*refund\s*policy/i,
       /refund\s*policy/i,
       /return\s*policy/i,
       /returns?\s*policy/i,
@@ -83,12 +86,18 @@ const PAGE_PATTERNS = {
   },
   shippingPolicy: {
     url: [
-      /\/shipping(?:-policy|-info|-information)?(?:\/|$|\?)/i,
+      /\/shipping[_-]delivery(?:[_-]policy)?(?:\/|$|\?)/i,
+      /\/shipping(?:[_-]policy|-info|-information)?(?:\/|$|\?)/i,
+      /\/pages\/shipping(?:-[a-z-]+)?(?:\/|$|\?)/i,
       /\/policies\/shipping(?:-policy)?(?:\/|$|\?)/i,
-      /\/pages\/shipping(?:-policy)?(?:\/|$|\?)/i,
       /\/delivery(?:-policy|-info)?(?:\/|$|\?)/i,
     ],
-    text: [/shipping\s*policy/i, /delivery\s*policy/i, /shipping\s*(&|and)\s*delivery/i],
+    text: [
+      /shipping\s*(?:&|and)\s*delivery/i,
+      /shipping\s*(?:&|and)\s*returns/i,
+      /shipping\s*policy/i,
+      /delivery\s*policy/i,
+    ],
   },
 }
 
@@ -310,7 +319,7 @@ function collectPolicyCandidates(links) {
       const { score, matchedKeyword } = scorePageMatch(pageType, link)
       if (score > 0) {
         candidates.push({
-          pageType,
+          type: pageType,
           url: link.url,
           text: (link.combinedText || link.text || '').slice(0, 120),
           matchedKeyword: matchedKeyword || '',
@@ -369,9 +378,10 @@ const WOOCOMMERCE_POLICY_PATHS = {
   shippingPolicy: [
     '/shipping-policy/',
     '/shipping-delivery-policy/',
+    '/shipping/',
     '/delivery-policy/',
   ],
-  privacyPolicy: ['/privacy-policy/', '/privacy/'],
+  privacyPolicy: ['/privacy-policy/', '/privacy_policy/', '/privacy/'],
 }
 
 async function enrichShopifyPages(pages, origin, timeout) {
@@ -606,7 +616,7 @@ async function fetchHtmlSafe(url, timeout) {
 
 async function fetchKeyPageContents(pages, homepageHtml) {
   const pageContent = {}
-  const contactSources = [extractContactInfo(homepageHtml)]
+  const contactSources = [extractContactInfo(homepageHtml, { page: 'homepage' })]
   const htmlCache = new Map()
 
   const fetchJobs = PAGE_TYPES.map(async (pageType) => {
@@ -656,11 +666,11 @@ async function fetchKeyPageContents(pages, homepageHtml) {
 
     if (pageType === 'refundPolicy') {
       const bodyText = getBodyTextFromHtml(html)
-      const pageContact = extractContactInfo(html)
+      const pageContact = extractContactInfo(html, { page: pageType })
       pageContent[pageType].policyQuality = analyzeReturnPolicyQuality(bodyText, pageContact)
     }
 
-    contactSources.push(extractContactInfo(html))
+    contactSources.push(extractContactInfo(html, { page: pageType }))
   })
 
   await Promise.all(fetchJobs)
@@ -713,7 +723,7 @@ export async function crawl(url, options = {}) {
 
   const ads = detectAdsData(html, productScan)
 
-  return {
+  const auditPayload = {
     url: finalUrl,
     title: meta.title,
     description: meta.description,
@@ -727,7 +737,8 @@ export async function crawl(url, options = {}) {
     contactInfo,
     ads,
     productsAudit: productScan.audit,
-    policyCandidates: policyCandidates.map(({ url, text, matchedKeyword }) => ({
+    policyCandidates: policyCandidates.map(({ type, url, text, matchedKeyword }) => ({
+      type,
       url,
       text,
       matchedKeyword,
@@ -742,5 +753,10 @@ export async function crawl(url, options = {}) {
         path,
       })),
     },
+  }
+
+  return {
+    ...auditPayload,
+    detectionSources: buildDetectionSources(auditPayload),
   }
 }

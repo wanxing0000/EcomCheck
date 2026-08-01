@@ -9,7 +9,7 @@ GMC-specific compliance checks for Google Shopping listings.
 | G003 | Return Policy | high | ✅ Quality analysis (Phase 4.1) |
 | G004 | Shipping Information | medium | ✅ Implemented |
 | G005 | Product Identifiers | warning | ✅ Implemented |
-| G006 | Product Price Consistency | warning | ✅ Implemented |
+| G006 | Product Price Consistency | high | ✅ v2 — schema/display price & currency |
 | G007 | Business Information | medium | ✅ Implemented |
 
 ## Data Sources

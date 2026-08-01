@@ -31,9 +31,20 @@ const MAIN_CONTENT_SELECTORS = [
 ]
 
 const EMAIL_REGEX = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g
-const PHONE_REGEX = /(?:\+?\d{1,3}[-.\s(])?\(?\d{2,4}\)?[-.\s)]*\d{3,4}[-.\s]\d{3,4}\b/g
+const PHONE_REGEX =
+  /(?:\+?\d{1,3}[-.\s(])?\(?\d{2,4}\)?[-.\s)]*\d{3,4}[-.\s]\d{3,4}\b/g
+const INTL_PHONE_REGEX = /\+[1-9]\d{0,3}[\s.-]?(?:\d[\s.-]?){5,14}\d/g
+const LABELED_PHONE_REGEX =
+  /(?:phone|tel(?:ephone)?|mobile|call(?:\s+us)?)[^:+\d]{0,40}:\s*(\+?\d[\d\s().-]{6,18})/gi
 const ADDRESS_REGEX =
   /\d{1,5}\s+[\w\s]{2,30}(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|way|court|ct|place|pl)\.?(?:,\s*[\w\s]+,\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?)?/gi
+
+const REGION_SELECTORS = {
+  footer: 'footer, [role="contentinfo"], .site-footer, #footer, .footer, .wd-footer',
+  header: 'header, [role="banner"], .site-header, #header, .header, .whb-header',
+  contact:
+    '.contact, .contact-us, .contact-page, [class*="contact"], .elementor-icon-list, .wd-contact',
+}
 
 function normalizeWhitespace(text) {
   return text.replace(/\s+/g, ' ').trim()
@@ -114,16 +125,196 @@ function extractSchemaAddresses($) {
 }
 
 function isValidEmail(email) {
-  const lower = email.toLowerCase()
+  const lower = email.toLowerCase().trim()
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,10}$/i.test(lower)) return false
   if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.gif')) return false
   if (lower.includes('example.com') || lower.includes('sentry.io')) return false
   if (lower.includes('@2x') || lower.includes('@3x')) return false
   return true
 }
 
+const ADDRESS_FALSE_POSITIVE =
+  /select options|this product|add to cart|free standard|pieces dnd|pieces golden|supplement st|woocommerce|copyright/i
+
+function isValidAddress(address, source = 'regex') {
+  if (!address || typeof address !== 'string') return false
+  const text = normalizeWhitespace(address)
+  if (text.length < 12 || text.length > 220) return false
+  if (ADDRESS_FALSE_POSITIVE.test(text)) return false
+  if (source === 'schema' || source === 'schema:PostalAddress') return true
+  return /\b(street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|way|court|ct|place|pl|crescent|close|terrace|park)\b/i.test(
+    text
+  )
+}
+
+function formatSchemaAddress(address) {
+  if (!address) return null
+  if (typeof address === 'string') return normalizeWhitespace(address)
+  if (typeof address !== 'object') return null
+  const parts = [
+    address.streetAddress,
+    address.addressLocality,
+    address.addressRegion,
+    address.postalCode,
+    address.addressCountry,
+  ].filter(Boolean)
+  return parts.length >= 2 ? parts.join(', ') : null
+}
+
+function extractJsonLdBlocks(html) {
+  const blocks = []
+  const regex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    try {
+      blocks.push(JSON.parse(match[1]))
+    } catch {
+      // skip invalid JSON-LD
+    }
+  }
+  return blocks
+}
+
+function isOrganizationType(typeValue) {
+  if (!typeValue) return false
+  const types = Array.isArray(typeValue) ? typeValue : [typeValue]
+  return types.some((t) => /Organization|LocalBusiness|Store|OnlineStore/i.test(String(t)))
+}
+
+function collectOrganizations(node, organizations) {
+  if (!node || typeof node !== 'object') return
+  if (Array.isArray(node)) {
+    node.forEach((item) => collectOrganizations(item, organizations))
+    return
+  }
+  if (isOrganizationType(node['@type'])) organizations.push(node)
+  if (node['@graph']) collectOrganizations(node['@graph'], organizations)
+}
+
+function extractOrganizationContact(html, page, sources, seen) {
+  const emails = []
+  const phones = []
+  const addresses = []
+
+  for (const block of extractJsonLdBlocks(html)) {
+    const organizations = []
+    collectOrganizations(block, organizations)
+
+    for (const org of organizations) {
+      if (org.email && isValidEmail(org.email)) {
+        emails.push(org.email)
+        addContactSource(sources, seen, 'email', org.email, 'schema', page)
+      }
+      if (org.telephone && isValidPhone(String(org.telephone))) {
+        const phone = normalizePhone(String(org.telephone))
+        phones.push(phone)
+        addContactSource(sources, seen, 'phone', phone, 'schema', page)
+      }
+      const formatted = formatSchemaAddress(org.address)
+      if (formatted && isValidAddress(formatted, 'schema')) {
+        addresses.push(formatted)
+        addContactSource(sources, seen, 'address', formatted, 'schema', page)
+      }
+    }
+  }
+
+  return { emails, phones, addresses }
+}
+
+function addContactSource(sources, seen, type, value, source, page) {
+  if (!value) return
+  const key = `${type}:${String(value).toLowerCase()}`
+  if (seen.has(key)) return
+  seen.add(key)
+  sources.push({ type, value, source, page })
+}
+
 function isValidPhone(phone) {
-  const digits = phone.replace(/\D/g, '')
-  return digits.length >= 10 && digits.length <= 15
+  if (!phone || typeof phone !== 'string') return false
+
+  const trimmed = phone.trim()
+  const digits = trimmed.replace(/\D/g, '')
+
+  if (digits.length < 10 || digits.length > 15) return false
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return false
+  if (/^1[67]\d{8,}$/.test(digits) && !trimmed.startsWith('+')) return false
+
+  return true
+}
+
+function normalizePhone(phone) {
+  return phone.replace(/\s+/g, ' ').trim()
+}
+
+function addPhoneCandidate(candidates, seen, value, source, page) {
+  if (!value || !isValidPhone(value)) return
+
+  const normalized = normalizePhone(value)
+  const key = normalized.replace(/\D/g, '')
+  if (seen.has(key)) return
+
+  seen.add(key)
+  candidates.push({ value: normalized, source, page })
+}
+
+function addPhoneSource(sources, sourceSeen, candidates, seen, value, source, page) {
+  addPhoneCandidate(candidates, seen, value, source, page)
+  if (value && isValidPhone(value)) {
+    addContactSource(sources, sourceSeen, 'phone', normalizePhone(value), source, page)
+  }
+}
+
+function extractPhoneCandidatesFromText(text, page, source, candidates, seen, sources, sourceSeen) {
+  if (!text) return
+
+  for (const match of text.match(INTL_PHONE_REGEX) || []) {
+    addPhoneSource(sources, sourceSeen, candidates, seen, match, source, page)
+  }
+
+  for (const match of text.match(PHONE_REGEX) || []) {
+    addPhoneSource(sources, sourceSeen, candidates, seen, match, source, page)
+  }
+
+  let labeledMatch
+  const labeledRegex = new RegExp(LABELED_PHONE_REGEX.source, LABELED_PHONE_REGEX.flags)
+  while ((labeledMatch = labeledRegex.exec(text)) !== null) {
+    addPhoneSource(sources, sourceSeen, candidates, seen, labeledMatch[1], `${source}:labeled`, page)
+  }
+}
+
+function extractPhoneCandidatesFromRegions($, page, candidates, seen, sources, sourceSeen) {
+  for (const [region, selector] of Object.entries(REGION_SELECTORS)) {
+    $(selector).each((_, el) => {
+      const text = $(el).text()
+      extractPhoneCandidatesFromText(text, page, region, candidates, seen, sources, sourceSeen)
+
+      $(el)
+        .find('a[href^="tel:"]')
+        .each((__, link) => {
+          const href = $(link).attr('href') || ''
+          const phone = href.replace(/^tel:/i, '').trim()
+          addPhoneSource(sources, sourceSeen, candidates, seen, phone, `${region}:tel`, page)
+        })
+    })
+  }
+}
+
+function extractAddressesFromRegions($, page, sources, sourceSeen) {
+  const addresses = []
+
+  for (const [region, selector] of Object.entries(REGION_SELECTORS)) {
+    $(selector).each((_, el) => {
+      const text = normalizeWhitespace($(el).text())
+      for (const match of text.match(ADDRESS_REGEX) || []) {
+        const addr = normalizeWhitespace(match)
+        if (!isValidAddress(addr, region)) continue
+        addresses.push(addr)
+        addContactSource(sources, sourceSeen, 'address', addr, region, page)
+      }
+    })
+  }
+
+  return addresses
 }
 
 /**
@@ -235,55 +426,119 @@ export function parsePageContent(html, pageUrl) {
 
 /**
  * Extract contact information from HTML.
+ * @param {string} html
+ * @param {{ page?: string }} [options]
  */
-export function extractContactInfo(html) {
+export function extractContactInfo(html, options = {}) {
+  const page = options.page || 'unknown'
   const $ = cheerio.load(html)
-  const text = $('body').text()
+  const phoneCandidates = []
+  const seenPhones = new Set()
+  const sources = []
+  const sourceSeen = new Set()
 
-  const mailtoEmails = []
+  const orgContact = extractOrganizationContact(html, page, sources, sourceSeen)
+  const emails = [...orgContact.emails]
+  const phones = [...orgContact.phones]
+  const addresses = [...orgContact.addresses]
+
   $('a[href^="mailto:"]').each((_, el) => {
     const href = $(el).attr('href') || ''
     const email = href.replace(/^mailto:/i, '').split('?')[0].trim()
-    if (email && isValidEmail(email)) mailtoEmails.push(email)
+    if (email && isValidEmail(email)) {
+      emails.push(email)
+      addContactSource(sources, sourceSeen, 'email', email, 'mailto', page)
+    }
   })
 
-  const telPhones = []
+  for (const [region, selector] of Object.entries(REGION_SELECTORS)) {
+    $(selector).each((_, el) => {
+      const regionText = $(el).text()
+      for (const match of regionText.match(EMAIL_REGEX) || []) {
+        if (!isValidEmail(match)) continue
+        emails.push(match)
+        addContactSource(sources, sourceSeen, 'email', match, region, page)
+      }
+    })
+  }
+
   $('a[href^="tel:"]').each((_, el) => {
     const href = $(el).attr('href') || ''
     const phone = href.replace(/^tel:/i, '').trim()
-    if (phone && isValidPhone(phone)) telPhones.push(phone)
+    addPhoneSource(sources, sourceSeen, phoneCandidates, seenPhones, phone, 'tel:link', page)
   })
 
-  const regexEmails = [...new Set(text.match(EMAIL_REGEX) || [])].filter(isValidEmail)
-  const regexPhones = [...new Set(text.match(PHONE_REGEX) || [])].filter(isValidPhone)
-  const schemaAddresses = extractSchemaAddresses($)
-  const regexAddresses = [...new Set(text.match(ADDRESS_REGEX) || [])]
-    .map(normalizeWhitespace)
-    .filter((a) => a.length >= 15 && a.length <= 200)
+  extractPhoneCandidatesFromText(
+    $('body').text(),
+    page,
+    'body',
+    phoneCandidates,
+    seenPhones,
+    sources,
+    sourceSeen
+  )
+  extractPhoneCandidatesFromRegions($, page, phoneCandidates, seenPhones, sources, sourceSeen)
 
-  const emails = [...new Set([...mailtoEmails, ...regexEmails])].slice(0, 10)
-  const phones = [...new Set([...telPhones, ...regexPhones])].slice(0, 10)
-  const addresses = [...new Set([...schemaAddresses, ...regexAddresses])].slice(0, 5)
+  for (const addr of extractSchemaAddresses($)) {
+    if (!isValidAddress(addr, 'schema:PostalAddress')) continue
+    addresses.push(addr)
+    addContactSource(sources, sourceSeen, 'address', addr, 'schema:PostalAddress', page)
+  }
 
-  return { emails, phones, addresses }
+  addresses.push(...extractAddressesFromRegions($, page, sources, sourceSeen))
+
+  for (const candidate of phoneCandidates) {
+    phones.push(candidate.value)
+  }
+
+  return {
+    emails: [...new Set(emails)].slice(0, 10),
+    phones: [...new Set(phones)].slice(0, 10),
+    addresses: [...new Set(addresses)].slice(0, 5),
+    phoneCandidates: phoneCandidates.slice(0, 20),
+    sources: sources.slice(0, 40),
+  }
 }
 
 /**
  * Merge multiple contact info objects, deduplicating values.
  */
 export function mergeContactInfo(sources) {
-  const merged = { emails: [], phones: [], addresses: [] }
+  const merged = { emails: [], phones: [], addresses: [], phoneCandidates: [], sources: [] }
+  const seenPhoneDigits = new Set()
+  const sourceSeen = new Set()
 
   for (const source of sources) {
     if (!source) continue
     merged.emails.push(...(source.emails || []))
     merged.phones.push(...(source.phones || []))
     merged.addresses.push(...(source.addresses || []))
+
+    for (const candidate of source.phoneCandidates || []) {
+      const digits = candidate.value?.replace(/\D/g, '')
+      if (!digits || seenPhoneDigits.has(digits)) continue
+      seenPhoneDigits.add(digits)
+      merged.phoneCandidates.push(candidate)
+    }
+
+    for (const item of source.sources || []) {
+      const key = `${item.type}:${String(item.value).toLowerCase()}:${item.source}:${item.page}`
+      if (sourceSeen.has(key)) continue
+      sourceSeen.add(key)
+      merged.sources.push(item)
+    }
   }
+
+  const phones = [...new Set([...merged.phones, ...merged.phoneCandidates.map((c) => c.value)])].slice(
+    0,
+    10
+  )
 
   return {
     emails: [...new Set(merged.emails)].slice(0, 10),
-    phones: [...new Set(merged.phones)].slice(0, 10),
+    phones,
     addresses: [...new Set(merged.addresses)].slice(0, 5),
+    phoneCandidates: merged.phoneCandidates.slice(0, 20),
+    sources: merged.sources.slice(0, 40),
   }
 }

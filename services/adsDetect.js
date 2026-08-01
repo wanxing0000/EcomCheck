@@ -74,16 +74,33 @@ function parsePriceNumber(value) {
 }
 
 function extractOfferValues(offer) {
-  if (!offer) return { price: null, currency: null }
-  const price = parsePriceNumber(
-    offer.price ?? offer.priceSpecification?.price ?? offer.lowPrice ?? offer.highPrice
-  )
+  if (!offer) return { price: null, currency: null, source: null }
+
+  let source = null
+  let rawPrice = null
+
+  if (offer.price != null && offer.price !== '') {
+    rawPrice = offer.price
+    source = 'offers.price'
+  } else if (offer.priceSpecification?.price != null && offer.priceSpecification?.price !== '') {
+    rawPrice = offer.priceSpecification.price
+    source = 'offers.priceSpecification.price'
+  } else if (offer.lowPrice != null && offer.lowPrice !== '') {
+    rawPrice = offer.lowPrice
+    source = 'offers.lowPrice'
+  } else if (offer.highPrice != null && offer.highPrice !== '') {
+    rawPrice = offer.highPrice
+    source = 'offers.highPrice'
+  }
+
+  const price = parsePriceNumber(rawPrice)
   const currency =
     offer.priceCurrency ||
     offer.priceSpecification?.priceCurrency ||
     offer.priceSpecification?.currency ||
     null
-  return { price, currency }
+
+  return { price, currency, source }
 }
 
 /**

@@ -1,6 +1,7 @@
 import { crawl, CrawlerError, CrawlerErrorCode } from '../services/crawler.js'
 import { runRules } from '../rules/index.js'
 import { scoreAudit, scoreCategory } from '../services/scorer.js'
+import { buildProfessionalReport } from '../services/reportBuilder.js'
 
 function buildGmcRiskDetails(gmcRules) {
   const byId = Object.fromEntries(gmcRules.map((rule) => [rule.id, rule]))
@@ -89,6 +90,17 @@ export async function handleAudit(req, res) {
     const gmcRules = ruleResults.filter((rule) => rule.category === 'gmc')
     const riskDetails = buildGmcRiskDetails(gmcRules)
 
+    const g006Warnings = (riskDetails.priceConsistency?.pageWarnings || []).map((warn) => ({
+      id: 'G006',
+      name: 'Product Price Consistency',
+      category: 'gmc',
+      severity: 'warning',
+      message: warn.message,
+    }))
+
+    const mergedGmcWarnings = [...gmc.warnings, ...g006Warnings]
+    const report = buildProfessionalReport(ruleResults, g006Warnings)
+
     sendJson(res, 200, {
       success: true,
       data: {
@@ -98,12 +110,16 @@ export async function handleAudit(req, res) {
         recommendations,
         rules: ruleResults,
         summary,
+        report,
         gmc: {
           score: gmc.score,
           issues: gmc.issues,
-          warnings: gmc.warnings,
+          warnings: mergedGmcWarnings,
           recommendations: gmc.recommendations,
-          summary: gmc.summary,
+          summary: {
+            ...gmc.summary,
+            warnings: mergedGmcWarnings.length,
+          },
           passedRules: gmc.passedRules,
           rules: gmc.rules,
           riskDetails,

@@ -136,6 +136,7 @@ export async function scanProductPages(links, options = {}) {
       missingFields,
       products,
       productName: products[0]?.name || null,
+      pricing: page.pricing || null,
       priceConsistency: page.priceConsistency || null,
     }
   })
@@ -170,7 +171,7 @@ export async function scanProductPages(links, options = {}) {
       scannedPages: productPages.length,
       pageScores,
       productPages: productPages.map(
-        ({ url, fetched, hasProductSchema, valid, missingFields, error, score, signals, products, priceConsistency }) => ({
+        ({
           url,
           fetched,
           hasProductSchema,
@@ -179,6 +180,19 @@ export async function scanProductPages(links, options = {}) {
           error,
           score,
           signals,
+          products,
+          pricing,
+          priceConsistency,
+        }) => ({
+          url,
+          fetched,
+          hasProductSchema,
+          valid,
+          missingFields,
+          error,
+          score,
+          signals,
+          pricing,
           priceConsistency,
           schemas: (products || []).map((p) => ({
             name: p.name,
