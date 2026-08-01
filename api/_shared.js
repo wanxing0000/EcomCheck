@@ -125,14 +125,23 @@ export async function handleAudit(req, res) {
       },
     }
 
-    const saved = await saveReport(url, auditData)
+    let saved = null
+    try {
+      saved = await saveReport(url, auditData)
+    } catch (err) {
+      console.error('Storage error:', err.message || err)
+    }
 
     sendJson(res, 200, {
       success: true,
       data: {
         ...auditData,
-        reportId: saved.id,
-        savedAt: saved.createdAt,
+        ...(saved
+          ? {
+              reportId: saved.id,
+              savedAt: saved.createdAt,
+            }
+          : {}),
       },
     })
   } catch (err) {

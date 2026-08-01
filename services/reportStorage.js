@@ -3,12 +3,31 @@ import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
+import { createClient } from '@supabase/supabase-js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const STORAGE_DIR = process.env.REPORT_STORAGE_DIR || join(__dirname, '..', 'data', 'reports')
 
-async function ensureStorageDir() {
-  await mkdir(STORAGE_DIR, { recursive: true })
+let supabaseClient = null
+
+function isSupabaseConfigured() {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+}
+
+function isLocalFallbackEnabled() {
+  return process.env.REPORT_STORAGE_FALLBACK !== 'false'
+}
+
+function getSupabase() {
+  if (!isSupabaseConfigured()) return null
+  if (!supabaseClient) {
+    supabaseClient = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    )
+  }
+  return supabaseClient
 }
 
 function toSummary(record) {
@@ -22,12 +41,20 @@ function toSummary(record) {
   }
 }
 
-export async function saveReport(url, auditData) {
-  await ensureStorageDir()
+function rowToRecord(row) {
+  return {
+    id: row.id,
+    url: row.url,
+    createdAt: row.created_at,
+    score: row.score ?? null,
+    platform: row.platform ?? null,
+    gmcScore: row.gmc_score ?? null,
+    data: row.data,
+  }
+}
 
-  const id = randomUUID()
-  const createdAt = new Date().toISOString()
-  const record = {
+function buildRecord(url, auditData, id = randomUUID(), createdAt = new Date().toISOString()) {
+  return {
     id,
     url: auditData.url || url,
     createdAt,
@@ -36,26 +63,39 @@ export async function saveReport(url, auditData) {
     gmcScore: auditData.gmc?.score ?? null,
     data: auditData,
   }
+}
 
-  await writeFile(join(STORAGE_DIR, `${id}.json`), JSON.stringify(record), 'utf8')
+function recordToRow(record) {
+  return {
+    id: record.id,
+    url: record.url,
+    created_at: record.createdAt,
+    score: record.score,
+    platform: record.platform,
+    gmc_score: record.gmcScore,
+    data: record.data,
+  }
+}
+
+async function ensureStorageDir() {
+  await mkdir(STORAGE_DIR, { recursive: true })
+}
+
+async function saveReportLocal(record) {
+  await ensureStorageDir()
+  await writeFile(join(STORAGE_DIR, `${record.id}.json`), JSON.stringify(record), 'utf8')
   return toSummary(record)
 }
 
-export async function getReport(id) {
-  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
-    return null
-  }
-
+async function getReportLocal(id) {
   const filePath = join(STORAGE_DIR, `${id}.json`)
-  if (!existsSync(filePath)) {
-    return null
-  }
+  if (!existsSync(filePath)) return null
 
   const raw = await readFile(filePath, 'utf8')
   return JSON.parse(raw)
 }
 
-export async function listReports() {
+async function listReportsLocal() {
   await ensureStorageDir()
 
   const files = await readdir(STORAGE_DIR)
@@ -76,4 +116,131 @@ export async function listReports() {
   }
 
   return reports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+}
+
+async function saveReportSupabase(record) {
+  const supabase = getSupabase()
+  const { error } = await supabase.from('audit_reports').insert(recordToRow(record))
+  if (error) throw error
+  return toSummary(record)
+}
+
+async function getReportSupabase(id) {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('audit_reports')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+  return rowToRecord(data)
+}
+
+async function listReportsSupabase() {
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('audit_reports')
+    .select('id, url, created_at, score, platform, gmc_score')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data || []).map((row) =>
+    toSummary({
+      id: row.id,
+      url: row.url,
+      createdAt: row.created_at,
+      score: row.score,
+      platform: row.platform,
+      gmcScore: row.gmc_score,
+    })
+  )
+}
+
+export async function saveReport(url, auditData) {
+  const record = buildRecord(url, auditData)
+  const errors = []
+
+  if (isSupabaseConfigured()) {
+    try {
+      return await saveReportSupabase(record)
+    } catch (err) {
+      errors.push(err)
+      console.error('Supabase saveReport failed:', err.message || err)
+    }
+  }
+
+  if (isLocalFallbackEnabled()) {
+    try {
+      return await saveReportLocal(record)
+    } catch (err) {
+      errors.push(err)
+      console.error('Local saveReport failed:', err.message || err)
+    }
+  }
+
+  const message = errors.map((err) => err.message || String(err)).join('; ') || 'No storage backend available'
+  throw new Error(message)
+}
+
+export async function getReport(id) {
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+    return null
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      const report = await getReportSupabase(id)
+      if (report) return report
+    } catch (err) {
+      console.error('Supabase getReport failed:', err.message || err)
+      if (!isLocalFallbackEnabled()) throw err
+    }
+  }
+
+  if (isLocalFallbackEnabled()) {
+    return getReportLocal(id)
+  }
+
+  return null
+}
+
+export async function listReports() {
+  if (isSupabaseConfigured()) {
+    try {
+      return await listReportsSupabase()
+    } catch (err) {
+      console.error('Supabase listReports failed:', err.message || err)
+      if (!isLocalFallbackEnabled()) throw err
+    }
+  }
+
+  if (isLocalFallbackEnabled()) {
+    return listReportsLocal()
+  }
+
+  return []
+}
+
+export async function upsertReportRecord(record) {
+  if (!record?.id) {
+    throw new Error('Report record must include id')
+  }
+
+  if (isSupabaseConfigured()) {
+    const supabase = getSupabase()
+    const { error } = await supabase
+      .from('audit_reports')
+      .upsert(recordToRow(record), { onConflict: 'id' })
+
+    if (error) throw error
+    return toSummary(record)
+  }
+
+  if (isLocalFallbackEnabled()) {
+    return saveReportLocal(record)
+  }
+
+  throw new Error('No storage backend available')
 }
