@@ -1,0 +1,14 @@
+{
+  "name": "ecomcheck-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EcomCheck backend API — reserved for future development",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
