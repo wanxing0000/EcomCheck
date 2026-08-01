@@ -77,23 +77,58 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Run the API (Placeholder)
+### Run the API
+
+```bash
+# From project root (recommended)
+npm install
+npm run dev:api
+```
+
+Or from the `api/` directory:
 
 ```bash
 cd api
-npm install
 npm run dev
 ```
 
 Health check: [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
+### Run Frontend + API together (local)
+
+```bash
+# Terminal 1
+npm run dev:api
+
+# Terminal 2
+npm run dev:frontend
+```
+
+Or simulate Vercel locally:
+
+```bash
+npm i -g vercel
+vercel dev
+```
+
 ### Build for Production
 
 ```bash
-cd frontend
 npm run build
-npm run preview
 ```
+
+### Deploy to Vercel
+
+1. Push the repo to GitHub
+2. Import the project in [Vercel Dashboard](https://vercel.com/new)
+3. Use the root directory (where `vercel.json` lives) — do **not** set root to `frontend/`
+4. Deploy — Vercel builds `frontend/dist` and deploys `api/*.js` as Serverless Functions
+
+| Path | Handler |
+|------|---------|
+| `GET /api/health` | `api/health.js` |
+| `POST /api/audit` | `api/audit.js` |
+| `/*` (SPA) | `frontend/dist/index.html` |
 
 ---
 
