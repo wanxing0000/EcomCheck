@@ -65,7 +65,9 @@ export default function Report() {
 
   if (!url || !crawlResult) return null
 
-  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations } = crawlResult
+  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit } = crawlResult
+
+  const adsRules = rules?.filter((r) => r.category === 'ads') ?? []
 
   const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'
 
@@ -149,6 +151,74 @@ export default function Report() {
           <p className="text-sm font-medium text-green-800">
             All compliance checks passed for the current rule set.
           </p>
+        </Card>
+      )}
+
+      {/* Ads Compliance */}
+      {adsRules.length > 0 && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Ads Compliance</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Google Merchant Center and Meta Ads tracking checks.
+          </p>
+          <ul className="mt-4 divide-y divide-gray-100">
+            {adsRules.map((rule) => (
+              <li key={rule.id} className="flex items-start justify-between gap-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-700">
+                      {rule.id}
+                    </span>
+                    <p className="text-sm font-medium text-gray-900">{rule.name}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-gray-600">{rule.message}</p>
+                  {!rule.passed && rule.recommendation && (
+                    <p className="mt-1 text-xs text-gray-500">{rule.recommendation}</p>
+                  )}
+                </div>
+                <StatusBadge found={rule.passed} />
+              </li>
+            ))}
+          </ul>
+
+          {productsAudit && (
+            <div className="mt-6 border-t border-gray-100 pt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Product Structured Data</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Deep scan of up to 5 product pages for JSON-LD Product schema.
+              </p>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <dt className="text-xs text-gray-500">Pages Scanned</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.scannedPages ?? 0}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Schemas Detected</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.detectedProducts ?? 0}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Valid Schemas</dt>
+                  <dd className="text-lg font-semibold text-gray-900">{productsAudit.validProducts ?? 0}</dd>
+                </div>
+              </dl>
+              {productsAudit.missingFields?.length > 0 && (
+                <p className="mt-3 text-sm text-amber-700">
+                  Missing fields: {productsAudit.missingFields.join(', ')}
+                </p>
+              )}
+              {productsAudit.productPages?.length > 0 && (
+                <ul className="mt-3 space-y-1 text-xs text-gray-500">
+                  {productsAudit.productPages.slice(0, 5).map((page) => (
+                    <li key={page.url} className="truncate">
+                      {page.valid ? '✓' : page.hasProductSchema ? '!' : '✗'}{' '}
+                      {page.url}
+                      {page.missingFields?.length > 0 && ` — missing: ${page.missingFields.join(', ')}`}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

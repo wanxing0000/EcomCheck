@@ -7,6 +7,9 @@ import { httpsRule } from './technical/K001-https.js'
 import { robotsRule } from './technical/K002-robots.js'
 import { sitemapRule } from './technical/K003-sitemap.js'
 import { metaBasicRule } from './technical/K004-meta-basic.js'
+import { metaPixelRule } from './ads/A001-meta-pixel.js'
+import { googleTagRule } from './ads/A002-google-tag.js'
+import { productJsonLdRule } from './ads/A003-product-jsonld.js'
 
 /** @type {import('./types.js').Rule[]} */
 export const allRules = [
@@ -19,6 +22,9 @@ export const allRules = [
   robotsRule,
   sitemapRule,
   metaBasicRule,
+  metaPixelRule,
+  googleTagRule,
+  productJsonLdRule,
 ]
 
 /**
@@ -53,4 +59,7 @@ export {
   robotsRule,
   sitemapRule,
   metaBasicRule,
+  metaPixelRule,
+  googleTagRule,
+  productJsonLdRule,
 }

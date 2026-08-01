@@ -1,4 +1,6 @@
 import { extractContactInfo, mergeContactInfo, parsePageContent } from './pageContent.js'
+import { detectAdsData, extractProductsFromHtml } from './adsDetect.js'
+import { scanProductPages } from './productCrawler.js'
 
 export const CrawlerErrorCode = {
   INVALID_URL: 'INVALID_URL',
@@ -599,6 +601,14 @@ export async function crawl(url, options = {}) {
 
   const { pageContent, contactInfo } = await fetchKeyPageContents(pages, html)
 
+  const productScan = await scanProductPages(allLinks, {
+    maxPages: 5,
+    timeout: PAGE_FETCH_TIMEOUT_MS,
+    extractProducts: extractProductsFromHtml,
+  })
+
+  const ads = detectAdsData(html, productScan)
+
   return {
     url: finalUrl,
     title: meta.title,
@@ -611,6 +621,8 @@ export async function crawl(url, options = {}) {
     meta,
     pageContent,
     contactInfo,
+    ads,
+    productsAudit: productScan.audit,
     links: {
       total: allLinks.length,
       internal: internalLinks.length,

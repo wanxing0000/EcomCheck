@@ -40,6 +40,9 @@ Each rule exports an object with:
 | K002 | technical | Robots.txt | low |
 | K003 | technical | Sitemap | low |
 | K004 | technical | Meta Basic | medium |
+| A001 | ads | Meta Pixel Detection | medium |
+| A002 | ads | Google Tag Detection | medium |
+| A003 | ads | Product JSON-LD Detection | high |
 
 ## Usage
 
