@@ -4,6 +4,13 @@ import { runAuditModules } from '../modules/index.js'
 import { scoreAudit } from '../services/scorer.js'
 import { buildProfessionalReport } from '../services/reportBuilder.js'
 import { saveReport } from '../services/reportStorage.js'
+import {
+  AuditModeError,
+  buildAuditMetadata,
+  buildReportAuditContext,
+  resolveAuditPlan,
+} from '../services/auditModes.js'
+import { buildUsagePayload, resolveClientId } from '../services/usageLimit.js'
 
 function buildGmcRiskDetails(gmcRules) {
   const byId = Object.fromEntries(gmcRules.map((rule) => [rule.id, rule]))
@@ -87,8 +94,29 @@ export async function handleAudit(req, res) {
     return
   }
 
-  const { url, modules: requestedModules } = body
-  const auditOptions = requestedModules?.length ? { modules: requestedModules } : {}
+  const { url, modules: requestedModules, mode: requestedMode, clientId: bodyClientId } = body
+
+  let auditPlan
+  try {
+    auditPlan = resolveAuditPlan({ mode: requestedMode, modules: requestedModules })
+  } catch (err) {
+    if (err instanceof AuditModeError) {
+      sendJson(res, 400, {
+        success: false,
+        error: { code: err.code, message: err.message },
+      })
+      return
+    }
+    throw err
+  }
+
+  const auditOptions = {
+    modules: auditPlan.modules,
+    legacyEnabled: auditPlan.legacyEnabled,
+  }
+  const reportAuditContext = buildReportAuditContext(auditPlan)
+  const auditMetadata = buildAuditMetadata(auditPlan)
+  const clientId = resolveClientId(req, { clientId: bodyClientId })
 
   if (!url) {
     sendJson(res, 400, {
@@ -122,7 +150,7 @@ export async function handleAudit(req, res) {
     }))
 
     const mergedGmcWarnings = gmc ? [...gmc.warnings, ...g006Warnings] : []
-    const report = buildProfessionalReport(ruleResults, g006Warnings)
+    const report = buildProfessionalReport(ruleResults, g006Warnings, reportAuditContext)
 
     const publicModules = Object.fromEntries(
       Object.entries(moduleResults).map(([id, result]) => [id, toPublicModuleResult(result)])
@@ -130,6 +158,7 @@ export async function handleAudit(req, res) {
 
     const auditData = {
       ...crawlResult,
+      ...auditMetadata,
       score,
       issues,
       recommendations,
@@ -168,6 +197,7 @@ export async function handleAudit(req, res) {
       success: true,
       data: {
         ...auditData,
+        usage: buildUsagePayload(clientId, auditPlan.mode, { record: auditPlan.mode === 'gmc' }),
         ...(saved
           ? {
               reportId: saved.id,

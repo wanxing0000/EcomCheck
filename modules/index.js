@@ -25,7 +25,7 @@ export function resolveModulesToRun(requestedModules) {
     .filter(([, entry]) => entry.enabled)
     .map(([id]) => id)
 
-  if (!requestedModules?.length) {
+  if (requestedModules === undefined || requestedModules === null) {
     return enabledIds
   }
 

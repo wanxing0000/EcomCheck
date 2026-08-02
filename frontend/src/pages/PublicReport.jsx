@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import {
+  getAuditProduct,
+  getComplianceScoreEntries,
+  getPrimaryScoreRings,
+  getReportSubtitle,
+  getReportTitle,
+  getReportProductLabel,
+  isFullAudit,
+  isGmcAuditProduct,
+  isSeoAuditProduct,
+  showIssueCategory,
+} from '../utils/auditDisplay.js'
 
 const CATEGORY_ORDER = ['trust', 'policy', 'technical', 'seo', 'ads', 'gmc']
 
@@ -171,23 +183,42 @@ export default function PublicReport() {
   const auditData = record.data || {}
   const scores = auditData.report?.scores || {
     overall: record.score ?? auditData.score,
-    gmc: record.gmcScore ?? auditData.gmc?.score,
+    compliance: auditData.report?.scores?.compliance ?? null,
+    gmc: record.gmcScore ?? auditData.gmc?.score ?? null,
     ads: auditData.modules?.ads?.score ?? null,
     technical: auditData.modules?.technical?.score ?? null,
-    seo: auditData.modules?.seo?.score ?? null,
+    trust: auditData.report?.scores?.trust ?? null,
+    policy: auditData.report?.scores?.policy ?? null,
+    seo: auditData.modules?.seo?.score ?? auditData.report?.scores?.seo ?? null,
   }
   const issues = buildIssues(auditData)
   const issuesByCategory = groupIssuesByCategory(issues, auditData.report?.issuesByCategory)
   const recommendations = auditData.recommendations || []
+  const auditProduct = getAuditProduct(auditData)
+  const reportTitle = getReportTitle(auditData)
+  const reportProductLabel = getReportProductLabel(auditData)
+  const reportSubtitle = getReportSubtitle(auditData)
+  const fullAudit = isFullAudit(auditData)
+  const gmcAuditProduct = isGmcAuditProduct(auditData)
+  const seoAuditProduct = isSeoAuditProduct(auditData)
+  const complianceScoreEntries = getComplianceScoreEntries(scores)
+  const primaryScoreRings = getPrimaryScoreRings(auditData, scores, {
+    complianceTotal: auditData.report?.issueCounts?.complianceTotal,
+    seoTotal: auditData.report?.issueCounts?.seoTotal,
+    total: auditData.report?.issueCounts?.total ?? issues.length,
+  })
+  const visibleCategories = CATEGORY_ORDER.filter((category) => showIssueCategory(auditData, category))
+  const filteredIssues = issues.filter((issue) => showIssueCategory(auditData, issue.category))
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-brand-600">Public Audit Report</p>
+          <p className="text-sm font-medium text-brand-600">{reportProductLabel}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Store Compliance Audit
+            {reportTitle}
           </h1>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">{reportSubtitle}</p>
           <p className="mt-2 break-all text-gray-500">{record.url || auditData.url}</p>
           <p className="mt-1 text-xs text-gray-400">
             Scanned on{' '}
@@ -202,9 +233,11 @@ export default function PublicReport() {
           <p className="mt-1 text-xs text-gray-400">Report ID: {record.id}</p>
         </div>
 
-        {scores.overall != null && (
-          <div className="flex flex-col items-center">
-            <ScoreRing label="Overall Score" value={scores.overall} size="lg" />
+        {primaryScoreRings.length > 0 && (
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
+            {primaryScoreRings.map((ring) => (
+              <ScoreRing key={ring.label} label={ring.label} value={ring.value} size={ring.size} />
+            ))}
           </div>
         )}
       </div>
@@ -214,16 +247,21 @@ export default function PublicReport() {
         <p className="mt-2 break-all text-sm text-gray-700">{record.url || auditData.url}</p>
       </Card>
 
-      <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">Compliance Scores</h2>
-        <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-          <ScoreRing label="Overall" value={scores.overall} />
-          <ScoreRing label="GMC" value={scores.gmc} />
-          <ScoreRing label="Ads" value={scores.ads} />
-          <ScoreRing label="Technical" value={scores.technical} />
-          <ScoreRing label="SEO" value={scores.seo} />
-        </div>
-      </Card>
+      {(fullAudit || gmcAuditProduct) && complianceScoreEntries.length > 0 && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Compliance Scores</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {fullAudit
+              ? 'Legacy full audit — compliance areas included in this report.'
+              : 'Compliance areas included in your GMC audit.'}
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-6">
+            {complianceScoreEntries.map((entry) => (
+              <ScoreRing key={entry.label} label={entry.label} value={entry.value} />
+            ))}
+          </div>
+        </Card>
+      )}
 
       {auditData.report?.quickSummary && (
         <Card className="mt-6 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
@@ -232,11 +270,11 @@ export default function PublicReport() {
         </Card>
       )}
 
-      {issues.length > 0 ? (
+      {filteredIssues.length > 0 ? (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Issues</h2>
           <div className="mt-6 space-y-8">
-            {CATEGORY_ORDER.map((category) => {
+            {visibleCategories.map((category) => {
               const categoryIssues = issuesByCategory[category]
               if (!categoryIssues?.length) return null
 
@@ -257,11 +295,11 @@ export default function PublicReport() {
         </Card>
       ) : (
         <Card className="mt-6 border-green-200 bg-green-50">
-          <p className="text-sm font-medium text-green-800">No compliance issues found.</p>
+          <p className="text-sm font-medium text-green-800">No issues found for this audit.</p>
         </Card>
       )}
 
-      {recommendations.length > 0 && (
+      {recommendations.length > 0 && fullAudit && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Recommendations</h2>
           <ul className="mt-4 space-y-3">

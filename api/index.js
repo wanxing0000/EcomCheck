@@ -13,6 +13,7 @@ export default function handler(req, res) {
     endpoints: {
       health: 'GET /api/health',
       audit: 'POST /api/audit',
+      usage: 'GET /api/usage?mode=gmc&clientId=...',
       reports: 'GET /api/reports',
       reportById: 'GET /api/reports/:id',
     },

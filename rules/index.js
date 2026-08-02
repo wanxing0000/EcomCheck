@@ -49,7 +49,8 @@ export const allRules = [...legacyRules, ...getAllModuleRules()]
  * @returns {import('./types.js').RuleResult[]}
  */
 export function runRules(auditData, options = {}) {
-  const legacyResults = runModuleRules(legacyRules, auditData)
+  const legacyEnabled = options.legacyEnabled !== false
+  const legacyResults = legacyEnabled ? runModuleRules(legacyRules, auditData) : []
   const moduleResults = runModuleRules(getModuleRulesForExecution(options.modules), auditData)
   return [...legacyResults, ...moduleResults]
 }

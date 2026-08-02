@@ -1,5 +1,7 @@
 import { scoreAudit, scoreCategory } from './scorer.js'
 import { scoreModuleResults } from '../modules/_shared/scorer.js'
+import { buildGmcReadinessReport, sortGmcIssuesByDisapprovalPriority } from './gmcReportBuilder.js'
+import { buildSeoHealthReport, sortSeoIssuesByPriority } from './seoReportBuilder.js'
 
 const COMPLIANCE_CATEGORIES = ['gmc', 'ads', 'technical', 'trust', 'policy']
 
@@ -190,12 +192,27 @@ function enrichIssue(rule) {
   }
 }
 
-function buildQuickSummary(scores, issueCounts) {
+function buildQuickSummary(scores, issueCounts, auditContext = {}) {
+  const isSeoOnly =
+    auditContext.mode === 'seo' ||
+    (scores.compliance == null && scores.seo != null && auditContext.legacyEnabled === false)
+
+  if (isSeoOnly) {
+    if (issueCounts.seoTotal === 0) {
+      return `SEO score is ${scores.seo}/100 with no open SEO issues on the scanned homepage signals.`
+    }
+    return `SEO score is ${scores.seo}/100 with ${issueCounts.seoTotal} SEO item(s) to review.`
+  }
+
   const complianceScore = scores.compliance ?? scores.overall
   const { overall, gmc, highRisk, gmcHighRisk } = issueCounts
 
   if (overall === 0) {
     return 'Your store passed all compliance checks. You are in strong shape for Google Merchant Center and advertising.'
+  }
+
+  if (complianceScore == null) {
+    return `${issueCounts.total} item(s) were found in this audit.`
   }
 
   if (complianceScore >= 85 && gmcHighRisk === 0) {
@@ -268,15 +285,41 @@ function buildSplitCoverage(scores) {
   }
 }
 
-function buildHealthStatus(scores, issueCounts) {
+function buildHealthStatus(scores, issueCounts, auditContext = {}) {
+  const isSeoOnly =
+    auditContext.mode === 'seo' ||
+    (scores.compliance == null && scores.seo != null && auditContext.legacyEnabled === false)
+
+  if (isSeoOnly) {
+    if (issueCounts.seoTotal === 0) return 'healthy'
+    if (scores.seo != null && scores.seo < 50) return 'critical'
+    if (scores.seo != null && scores.seo >= 85) return 'healthy'
+    return 'needs_attention'
+  }
+
   const complianceScore = scores.compliance ?? scores.overall
   if (issueCounts.complianceTotal === 0) return 'healthy'
+  if (complianceScore == null) return 'needs_attention'
   if (issueCounts.highRisk > 0 || complianceScore < 50) return 'critical'
   if (complianceScore >= 85 && issueCounts.highRisk === 0) return 'healthy'
   return 'needs_attention'
 }
 
-function buildExecutiveHeadline(healthStatus, issueCounts) {
+function buildExecutiveHeadline(healthStatus, issueCounts, auditContext = {}) {
+  const isSeoOnly =
+    auditContext.mode === 'seo' ||
+    (auditContext.legacyEnabled === false && auditContext.executedModules?.length === 1 && auditContext.executedModules[0] === 'seo')
+
+  if (isSeoOnly) {
+    if (issueCounts.seoTotal === 0) {
+      return 'Your homepage SEO signals look strong.'
+    }
+    if (healthStatus === 'critical') {
+      return 'Your store has critical SEO gaps that may limit organic visibility.'
+    }
+    return 'Your store has SEO improvements that could boost organic search performance.'
+  }
+
   const complianceTotal = issueCounts.complianceTotal ?? issueCounts.overall ?? issueCounts.total
 
   if (healthStatus === 'healthy' && complianceTotal === 0) {
@@ -326,16 +369,16 @@ function buildImprovementRoadmap(allIssues) {
   }
 }
 
-function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary) {
-  const healthStatus = buildHealthStatus(scores, issueCounts)
+function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary, auditContext = {}) {
+  const healthStatus = buildHealthStatus(scores, issueCounts, auditContext)
   const complianceIssues = allIssues.filter((issue) => issue.category !== 'seo')
   const seoIssues = allIssues.filter((issue) => issue.category === 'seo')
 
   return {
-    headline: buildExecutiveHeadline(healthStatus, issueCounts),
+    headline: buildExecutiveHeadline(healthStatus, issueCounts, auditContext),
     healthStatus,
     summary: quickSummary,
-    complianceScore: scores.compliance ?? scores.overall,
+    complianceScore: scores.compliance,
     seoScore: scores.seo ?? null,
     seoSummary: buildSeoSummary(scores.seo, seoIssues.length),
     topPriorities: buildTopPriorities(complianceIssues),
@@ -343,40 +386,82 @@ function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary) {
   }
 }
 
+const MODULE_CATEGORY_MAP = {
+  gmc: 'gmc',
+  ads: 'ads',
+  technical: 'technical',
+  seo: 'seo',
+}
+
+function isCategoryExecuted(category, auditContext = {}) {
+  const legacyEnabled = auditContext.legacyEnabled !== false
+  const executedModules = auditContext.executedModules
+
+  if (category === 'trust' || category === 'policy') {
+    return legacyEnabled
+  }
+
+  const moduleId = MODULE_CATEGORY_MAP[category]
+  if (!moduleId) return true
+
+  if (!executedModules) return true
+  return executedModules.includes(moduleId)
+}
+
+function scoreExecutedCategory(ruleResults, category, auditContext = {}) {
+  if (!isCategoryExecuted(category, auditContext)) {
+    return null
+  }
+
+  const categoryRules = ruleResults.filter((rule) => rule.category === category)
+  if (categoryRules.length === 0) {
+    return null
+  }
+
+  return scoreCategory(ruleResults, category).score
+}
+
+function scoreExecutedCompliance(ruleResults, auditContext = {}) {
+  const activeCategories = COMPLIANCE_CATEGORIES.filter((category) =>
+    isCategoryExecuted(category, auditContext)
+  )
+  const complianceRules = ruleResults.filter((rule) => activeCategories.includes(rule.category))
+
+  if (complianceRules.length === 0) {
+    return null
+  }
+
+  return scoreModuleResults(complianceRules).score
+}
+
 /**
  * Build seller-facing professional audit report from rule results.
  * Does not change rule pass/fail outcomes — presentation layer only.
  * @param {import('../rules/types.js').RuleResult[]} ruleResults
  * @param {Array} [extraWarnings]
+ * @param {{ mode?: string, legacyEnabled?: boolean, executedModules?: string[] }} [auditContext]
  */
-export function buildProfessionalReport(ruleResults, extraWarnings = []) {
+export function buildProfessionalReport(ruleResults, extraWarnings = [], auditContext = {}) {
   const overallResult = scoreAudit(ruleResults)
-  const gmcResult = scoreCategory(ruleResults, 'gmc')
-  const adsResult = scoreCategory(ruleResults, 'ads')
-  const technicalResult = scoreCategory(ruleResults, 'technical')
-  const trustResult = scoreCategory(ruleResults, 'trust')
-  const policyResult = scoreCategory(ruleResults, 'policy')
-  const seoResult = scoreCategory(ruleResults, 'seo')
-
-  const complianceRules = ruleResults.filter((rule) => COMPLIANCE_CATEGORIES.includes(rule.category))
-  const complianceResult = scoreModuleResults(complianceRules)
 
   const failedRules = ruleResults.filter((rule) => !rule.passed)
   const warningRules = failedRules.filter((rule) => rule.severity === 'warning')
 
   const warningIssues = [
     ...warningRules.map(enrichIssue),
-    ...extraWarnings.map((warn) =>
-      enrichIssue({
-        id: warn.id,
-        name: warn.name,
-        category: warn.category || 'gmc',
-        severity: 'warning',
-        message: warn.message,
-        recommendation: RULE_GUIDANCE[warn.id]?.fixSuggestion || '',
-        description: '',
-      })
-    ),
+    ...extraWarnings
+      .filter(() => isCategoryExecuted('gmc', auditContext))
+      .map((warn) =>
+        enrichIssue({
+          id: warn.id,
+          name: warn.name,
+          category: warn.category || 'gmc',
+          severity: 'warning',
+          message: warn.message,
+          recommendation: RULE_GUIDANCE[warn.id]?.fixSuggestion || '',
+          description: '',
+        })
+      ),
   ]
 
   const issueItems = failedRules
@@ -397,15 +482,33 @@ export function buildProfessionalReport(ruleResults, extraWarnings = []) {
   const gmcHighRisk = issuesByCategory.gmc.filter((i) => i.severity === 'high').length
   const complianceIssues = allIssues.filter((issue) => issue.category !== 'seo')
 
+  if (issuesByCategory.gmc.length > 0) {
+    issuesByCategory.gmc = sortGmcIssuesByDisapprovalPriority(issuesByCategory.gmc)
+  }
+
+  if (issuesByCategory.seo.length > 0) {
+    issuesByCategory.seo = sortSeoIssuesByPriority(issuesByCategory.seo)
+  }
+
+  const gmcRuleResults = ruleResults.filter((rule) => rule.category === 'gmc')
+  const gmcModuleSummary = gmcRuleResults.length
+    ? scoreModuleResults(gmcRuleResults).summary
+    : null
+
+  const seoRuleResults = ruleResults.filter((rule) => rule.category === 'seo')
+  const seoModuleSummary = seoRuleResults.length
+    ? scoreModuleResults(seoRuleResults).summary
+    : null
+
   const scores = {
     overall: overallResult.score,
-    compliance: complianceResult.score,
-    gmc: gmcResult.score,
-    ads: adsResult.score,
-    technical: technicalResult.score,
-    trust: trustResult.score,
-    policy: policyResult.score,
-    seo: seoResult.score,
+    compliance: scoreExecutedCompliance(ruleResults, auditContext),
+    gmc: scoreExecutedCategory(ruleResults, 'gmc', auditContext),
+    ads: scoreExecutedCategory(ruleResults, 'ads', auditContext),
+    technical: scoreExecutedCategory(ruleResults, 'technical', auditContext),
+    trust: scoreExecutedCategory(ruleResults, 'trust', auditContext),
+    policy: scoreExecutedCategory(ruleResults, 'policy', auditContext),
+    seo: scoreExecutedCategory(ruleResults, 'seo', auditContext),
   }
 
   const issueCounts = {
@@ -426,14 +529,32 @@ export function buildProfessionalReport(ruleResults, extraWarnings = []) {
     seo: issuesByCategory.seo.length,
   }
 
-  const quickSummary = buildQuickSummary(scores, issueCounts)
+  const quickSummary = buildQuickSummary(scores, issueCounts, auditContext)
+
+  const gmcReadiness = isCategoryExecuted('gmc', auditContext)
+    ? buildGmcReadinessReport({
+        gmcIssues: issuesByCategory.gmc,
+        readinessScore: scores.gmc,
+        summary: gmcModuleSummary || undefined,
+      })
+    : null
+
+  const seoHealth = isCategoryExecuted('seo', auditContext)
+    ? buildSeoHealthReport({
+        seoIssues: issuesByCategory.seo,
+        seoScore: scores.seo,
+        summary: seoModuleSummary || undefined,
+      })
+    : null
 
   return {
     quickSummary,
-    executiveSummary: buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary),
+    executiveSummary: buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary, auditContext),
     improvementRoadmap: buildImprovementRoadmap(complianceIssues),
     coverage: buildSplitCoverage(scores),
     scores,
+    gmcReadiness,
+    seoHealth,
     issueCounts: {
       total: issueCounts.total,
       complianceTotal: issueCounts.complianceTotal,

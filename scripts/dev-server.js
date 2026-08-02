@@ -9,6 +9,7 @@ import 'dotenv/config'
 import { createServer } from 'http'
 import healthHandler from '../api/health.js'
 import auditHandler from '../api/audit.js'
+import usageHandler from '../api/usage.js'
 import reportsHandler from '../api/reports.js'
 import reportByIdHandler from '../api/reports/[id].js'
 import { sendJson } from '../api/_shared.js'
@@ -25,6 +26,11 @@ const server = createServer(async (req, res) => {
 
   if (method === 'POST' && url === '/api/audit') {
     await auditHandler(req, res)
+    return
+  }
+
+  if (method === 'GET' && url.startsWith('/api/usage')) {
+    await usageHandler(req, res)
     return
   }
 
@@ -50,6 +56,7 @@ server.listen(PORT, () => {
   console.log(`EcomCheck API running at http://localhost:${PORT}`)
   console.log(`  GET  /api/health`)
   console.log(`  POST /api/audit`)
+  console.log(`  GET  /api/usage`)
   console.log(`  GET  /api/reports`)
   console.log(`  GET  /api/reports/:id`)
 })

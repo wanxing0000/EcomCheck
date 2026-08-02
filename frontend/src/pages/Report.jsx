@@ -2,6 +2,25 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import {
+  buildComplianceRiskAreas,
+  getAuditMode,
+  getAuditProduct,
+  getComplianceScoreEntries,
+  getPrimaryScoreRings,
+  getReportSubtitle,
+  getReportTitle,
+  getReportProductLabel,
+  isFullAudit,
+  isGmcAuditProduct,
+  isModuleExecuted,
+  isSeoAuditProduct,
+  showTrustPolicySection,
+} from '../utils/auditDisplay.js'
+import {
+  GMC_DAILY_FREE_LIMIT,
+  GMC_REPORT_CTA,
+} from '../data/gmcProduct.js'
 
 function formatNumber(n) {
   return n?.toLocaleString?.('en-US') ?? '0'
@@ -191,6 +210,7 @@ function RoadmapItem({ item }) {
 }
 
 function scoreColor(value) {
+  if (value == null) return '#d1d5db'
   if (value >= 80) return '#22c55e'
   if (value >= 60) return '#f59e0b'
   return '#ef4444'
@@ -208,6 +228,130 @@ function SeverityBadge({ severity, label }) {
     <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[severity] || styles.medium}`}>
       {label || severity}
     </span>
+  )
+}
+
+function getSeoHealthLabelStyle(label) {
+  switch (label) {
+    case 'Excellent':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'Good':
+      return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'Needs Improvement':
+      return 'bg-amber-100 text-amber-900 border-amber-200'
+    case 'Poor':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-200'
+  }
+}
+
+function getGmcReadinessLabelStyle(label) {
+  switch (label) {
+    case 'Ready':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'Nearly Ready':
+      return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+    case 'Needs Work':
+      return 'bg-amber-100 text-amber-900 border-amber-200'
+    case 'Not Ready':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-200'
+  }
+}
+
+function GmcRiskAreaPill({ area }) {
+  const styles = {
+    pass: 'bg-green-50 text-green-700 border-green-200',
+    warning: 'bg-amber-50 text-amber-800 border-amber-200',
+    critical: 'bg-red-50 text-red-700 border-red-200',
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ${styles[area.status] || styles.warning}`}
+    >
+      {area.label}
+      {area.failedRules?.length > 0 && (
+        <span className="ml-1.5 opacity-75">({area.failedRules.join(', ')})</span>
+      )}
+    </span>
+  )
+}
+
+function GmcReportCta({ gmcReadiness, gmcFixRecommendations, usage }) {
+  if (!gmcReadiness) return null
+
+  const nextAction = gmcFixRecommendations?.[0]
+  const statusLabel = gmcReadiness.readinessLabel || 'Unknown'
+  const headline = gmcReadiness.riskSummary?.headline
+
+  return (
+    <div className="mt-5 border-t border-emerald-100 pt-5">
+      <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Your GMC Status</p>
+            <p className="mt-2 text-lg font-semibold text-gray-900">{statusLabel}</p>
+            {headline && <p className="mt-1 text-sm text-gray-600">{headline}</p>}
+            {nextAction && (
+              <div className="mt-4 rounded-lg border border-white bg-white/80 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Next step</p>
+                <p className="mt-1 text-sm font-medium text-gray-900">{nextAction.title}</p>
+                <p className="mt-1 text-sm text-gray-600">{nextAction.action}</p>
+              </div>
+            )}
+          </div>
+          <div className="w-full shrink-0 rounded-xl border border-dashed border-emerald-300 bg-white/60 p-4 sm:max-w-xs">
+            <p className="text-sm font-semibold text-gray-900">{GMC_REPORT_CTA.proTitle}</p>
+            <p className="mt-1 text-sm text-gray-600">{GMC_REPORT_CTA.proDescription}</p>
+            {usage && !usage.unlimited && (
+              <p className="mt-2 text-xs text-amber-700">
+                Free plan: {usage.remaining ?? 0} of {usage.dailyLimit ?? GMC_DAILY_FREE_LIMIT} scans left today
+              </p>
+            )}
+            <button
+              type="button"
+              disabled
+              className="mt-4 w-full cursor-not-allowed rounded-lg bg-emerald-600/80 px-4 py-2 text-sm font-semibold text-white opacity-90"
+            >
+              {GMC_REPORT_CTA.proCta}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GmcFixRecommendationList({ recommendations }) {
+  if (!recommendations?.length) return null
+
+  return (
+    <ol className="mt-3 space-y-3">
+      {recommendations.map((rec) => (
+        <li
+          key={`${rec.ruleId}-${rec.priority}`}
+          className="rounded-lg border border-brand-100 bg-brand-50/40 px-4 py-3"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+              {rec.priority}
+            </span>
+            <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold text-brand-700">{rec.ruleId}</span>
+            <h4 className="text-sm font-semibold text-gray-900">{rec.title}</h4>
+          </div>
+          {rec.action && <p className="mt-2 text-sm text-gray-700">{rec.action}</p>}
+          {rec.impact && (
+            <p className="mt-1 text-sm text-gray-600">
+              <span className="font-medium text-gray-800">Impact: </span>
+              {rec.impact}
+            </p>
+          )}
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -336,7 +480,43 @@ export default function Report() {
     })),
   }
   const gmcIssues = getCategoryIssues(professionalReport, 'gmc')
+  const gmcReadiness = professionalReport.gmcReadiness
+  const gmcCriticalIssues =
+    gmcReadiness?.criticalIssues ??
+    gmcIssues.filter((issue) => issue.severity === 'high' || issue.severity === 'medium')
+  const gmcWarningIssues =
+    gmcReadiness?.warnings ??
+    gmcIssues.filter((issue) => issue.severity === 'warning' || issue.severity === 'low')
+  const gmcFixRecommendations =
+    gmcReadiness?.fixRecommendations ??
+    (gmc?.recommendations || []).map((rec, index) => ({
+      priority: index + 1,
+      ruleId: rec.id || `GMC-${index + 1}`,
+      title: rec.name || rec.id || 'Recommendation',
+      action: rec.text,
+      impact: '',
+      severity: rec.priority === 'high' ? 'high' : 'medium',
+    }))
   const seoIssues = getCategoryIssues(professionalReport, 'seo')
+  const seoHealth = professionalReport.seoHealth
+  const seoCriticalIssues =
+    seoHealth?.criticalIssues ??
+    seoIssues.filter((issue) => issue.severity === 'high' || issue.severity === 'medium')
+  const seoWarningIssues =
+    seoHealth?.warnings ??
+    seoIssues.filter((issue) => issue.severity === 'warning' || issue.severity === 'low')
+  const seoFixRecommendations =
+    seoHealth?.fixRecommendations ??
+    seoIssues
+      .filter((issue) => issue.fixSuggestion || issue.impact)
+      .map((issue, index) => ({
+        priority: index + 1,
+        ruleId: issue.id,
+        title: issue.title || issue.name,
+        action: issue.fixSuggestion || issue.message,
+        impact: issue.impact || '',
+        severity: issue.severity,
+      }))
   const adsIssues = getCategoryIssues(professionalReport, 'ads')
   const technicalIssues = getCategoryIssues(professionalReport, 'technical')
   const trustPolicyIssues = getTrustPolicyIssues(professionalReport)
@@ -354,6 +534,33 @@ export default function Report() {
   const seoIssueCount = professionalReport.issueCounts?.seoTotal ?? seoIssues.length
   const coverageEntries = getCoverageEntries(professionalReport)
   const improvementRoadmap = professionalReport.improvementRoadmap
+
+  const auditProduct = getAuditProduct(crawlResult)
+  const auditMode = getAuditMode(crawlResult)
+  const reportTitle = getReportTitle(crawlResult)
+  const reportProductLabel = getReportProductLabel(crawlResult)
+  const reportSubtitle = getReportSubtitle(crawlResult)
+  const fullAudit = isFullAudit(crawlResult)
+  const gmcAuditProduct = isGmcAuditProduct(crawlResult)
+  const seoAuditProduct = isSeoAuditProduct(crawlResult)
+  const showGmc = gmcAuditProduct && isModuleExecuted(crawlResult, 'gmc') && gmc
+  const showSeo = seoAuditProduct && isModuleExecuted(crawlResult, 'seo')
+  const showAds = gmcAuditProduct && isModuleExecuted(crawlResult, 'ads')
+  const showTechnical = gmcAuditProduct && isModuleExecuted(crawlResult, 'technical')
+  const showTrustPolicy = gmcAuditProduct && showTrustPolicySection(crawlResult)
+  const complianceRiskAreas = buildComplianceRiskAreas(professionalReport.scores, {
+    ads: adsIssues,
+    technical: technicalIssues,
+    trust: getCategoryIssues(professionalReport, 'trust'),
+    policy: getCategoryIssues(professionalReport, 'policy'),
+  })
+  const auditUsage = crawlResult.usage
+  const complianceScoreEntries = getComplianceScoreEntries(professionalReport.scores)
+  const primaryScoreRings = getPrimaryScoreRings(crawlResult, professionalReport.scores, {
+    complianceTotal: complianceIssueCount,
+    seoTotal: seoIssueCount,
+    total: professionalReport.issueCounts?.total,
+  })
 
   function exportReportJson() {
     const exportPayload = {
@@ -378,10 +585,11 @@ export default function Report() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-brand-600">Audit Report</p>
+          <p className="text-sm font-medium text-brand-600">{reportProductLabel}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            Store Compliance Audit
+            {reportTitle}
           </h1>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">{reportSubtitle}</p>
           <p className="mt-2 break-all text-gray-500">{crawlResult.url || url}</p>
           <p className="mt-1 text-xs text-gray-400">
             Scanned on{' '}
@@ -410,26 +618,16 @@ export default function Report() {
           </div>
         </div>
 
-        {(complianceScore != null || seoScore != null) && (
+        {primaryScoreRings.length > 0 && (
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
-            {complianceScore != null && (
-              <div className="flex flex-col items-center">
-                <ScoreRing label="Compliance Score" value={complianceScore} size="lg" />
-                <p className="mt-2 text-xs text-gray-400">
-                  {complianceIssueCount} compliance item{complianceIssueCount !== 1 ? 's' : ''} to review
-                </p>
-                {overallScore != null && overallScore !== complianceScore && (
-                  <p className="mt-1 text-xs text-gray-400">Overall (incl. SEO): {overallScore}</p>
-                )}
+            {primaryScoreRings.map((ring) => (
+              <div key={ring.label} className="flex flex-col items-center">
+                <ScoreRing label={ring.label} value={ring.value} size={ring.size} />
+                {ring.subtext && <p className="mt-2 text-xs text-gray-400">{ring.subtext}</p>}
               </div>
-            )}
-            {seoScore != null && (
-              <div className="flex flex-col items-center">
-                <ScoreRing label="SEO Score" value={seoScore} />
-                <p className="mt-2 text-xs text-gray-400">
-                  {seoIssueCount} SEO item{seoIssueCount !== 1 ? 's' : ''} to review
-                </p>
-              </div>
+            ))}
+            {fullAudit && overallScore != null && overallScore !== complianceScore && complianceScore != null && (
+              <p className="text-xs text-gray-400">Overall (incl. SEO): {overallScore}</p>
             )}
           </div>
         )}
@@ -477,7 +675,7 @@ export default function Report() {
               </ol>
             </div>
           )}
-          {executiveSummary.seoSummary && (
+          {showSeo && executiveSummary.seoSummary && (
             <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-4">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">SEO Overview</h3>
@@ -517,29 +715,26 @@ export default function Report() {
       )}
 
       {/* Score Dashboard */}
-      {professionalReport.scores && (
+      {(fullAudit || auditMode === 'gmc') && complianceScoreEntries.length > 0 && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Compliance Scores</h2>
-          <p className="mt-1 text-sm text-gray-500">Compliance modules only — SEO is tracked separately.</p>
+          <p className="mt-1 text-sm text-gray-500">Compliance areas only — SEO is tracked separately.</p>
           <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-6">
-            <ScoreRing label="Compliance" value={professionalReport.scores.compliance ?? complianceScore} />
-            <ScoreRing label="GMC" value={professionalReport.scores.gmc ?? gmc?.score} />
-            <ScoreRing label="Ads" value={professionalReport.scores.ads} />
-            <ScoreRing label="Technical" value={professionalReport.scores.technical ?? technicalModule?.score} />
-            <ScoreRing label="Trust" value={professionalReport.scores.trust} />
-            <ScoreRing label="Policy" value={professionalReport.scores.policy} />
+            {complianceScoreEntries.map((entry) => (
+              <ScoreRing key={entry.label} label={entry.label} value={entry.value} />
+            ))}
           </div>
         </Card>
       )}
 
-      {seoScore != null && (
+      {fullAudit && seoScore != null && (
         <Card className="mt-6 border-blue-100 bg-gradient-to-r from-blue-50/80 to-white">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">SEO Score</h2>
+              <h2 className="text-lg font-semibold text-gray-900">SEO Health Score</h2>
               <p className="mt-1 text-sm text-gray-500">On-page SEO audit, separate from compliance scoring.</p>
             </div>
-            <ScoreRing label="SEO" value={seoScore} />
+            <ScoreRing label="SEO Health" value={seoScore} />
           </div>
         </Card>
       )}
@@ -547,7 +742,7 @@ export default function Report() {
       {coverageEntries.length > 0 && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Audit Coverage</h2>
-          <p className="mt-1 text-sm text-gray-500">Module readiness across your store audit areas.</p>
+          <p className="mt-1 text-sm text-gray-500">Audit areas included in this report.</p>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {coverageEntries.map((module) => (
               <div
@@ -569,7 +764,7 @@ export default function Report() {
         </Card>
       )}
 
-      {improvementRoadmap && (
+      {(fullAudit || auditMode === 'gmc') && improvementRoadmap && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Improvement Roadmap</h2>
           <p className="mt-1 text-sm text-gray-500">Prioritized actions to improve store readiness.</p>
@@ -618,11 +813,11 @@ export default function Report() {
       {/* Professional Issues by Category — compliance-only fallback when no module sections render */}
       {complianceIssueCount === 0 &&
         seoIssueCount === 0 &&
-        !gmc &&
-        !adsRules.length &&
-        !technicalRules.length &&
-        !trustPolicyRules.length &&
-        !(seoModule || seoRules.length > 0 || seo?.homepage) && (
+        !showGmc &&
+        !showAds &&
+        !showTechnical &&
+        !showTrustPolicy &&
+        !showSeo && (
         <Card className="mt-6 border-green-200 bg-green-50">
           <p className="text-sm font-medium text-green-800">
             All compliance checks passed for the current rule set.
@@ -630,75 +825,107 @@ export default function Report() {
         </Card>
       )}
 
-      {/* GMC Audit */}
-      {gmc && (
+      {/* GMC Readiness */}
+      {showGmc && (
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">GMC Audit</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Google Merchant Center Readiness</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Google Merchant Center readiness checks.
+                Product readiness report for Google Shopping approval.
               </p>
+              {gmcReadiness?.readinessLabel && (
+                <span
+                  className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getGmcReadinessLabelStyle(gmcReadiness.readinessLabel)}`}
+                >
+                  {gmcReadiness.readinessLabel}
+                </span>
+              )}
             </div>
-            <ModuleScoreRing score={gmc?.score ?? professionalReport.scores?.gmc} label="GMC Score" summary={gmc?.summary} />
+            <ModuleScoreRing
+              score={gmcReadiness?.readinessScore ?? gmc?.score ?? professionalReport.scores?.gmc}
+              label="Readiness Score"
+              summary={gmc?.summary}
+            />
           </div>
 
+          {gmcReadiness?.riskSummary && (
+            <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">GMC Risk Summary</h3>
+              <p className="mt-2 text-sm font-medium text-gray-900">{gmcReadiness.riskSummary.headline}</p>
+              <p className="mt-1 text-sm text-gray-600">{gmcReadiness.riskSummary.summary}</p>
+              {gmcReadiness.riskSummary.riskAreas?.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {gmcReadiness.riskSummary.riskAreas.map((area) => (
+                    <GmcRiskAreaPill key={area.id} area={area} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {gmcCriticalIssues.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Critical Issues
+                <span className="ml-2 font-normal text-gray-500">({gmcCriticalIssues.length})</span>
+              </h3>
+              <ul className="mt-3 space-y-3">
+                {gmcCriticalIssues.map((issue) => (
+                  <IssueCard key={`${issue.id}-${issue.severity}-critical`} issue={issue} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {gmcWarningIssues.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Warnings
+                <span className="ml-2 font-normal text-gray-500">({gmcWarningIssues.length})</span>
+              </h3>
+              <ul className="mt-3 space-y-3">
+                {gmcWarningIssues.map((issue) => (
+                  <IssueCard key={`${issue.id}-${issue.severity}-warning`} issue={issue} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {gmcFixRecommendations.length > 0 && (
+            <div className="mt-5 border-t border-gray-100 pt-5">
+              <h3 className="text-sm font-semibold text-gray-900">Fix Recommendations</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                Prioritized by Google Shopping disapproval risk.
+              </p>
+              <GmcFixRecommendationList recommendations={gmcFixRecommendations} />
+            </div>
+          )}
+
+          {auditMode === 'gmc' && (
+            <GmcReportCta
+              gmcReadiness={gmcReadiness}
+              gmcFixRecommendations={gmcFixRecommendations}
+              usage={auditUsage}
+            />
+          )}
+
+          {gmcCriticalIssues.length === 0 && gmcWarningIssues.length === 0 && (
+            <div className="mt-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+              <p className="text-sm font-medium text-green-800">
+                No open GMC blockers detected in the current rule set.
+              </p>
+            </div>
+          )}
+
           {gmc.passedRules?.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-5 border-t border-gray-100 pt-5">
               <h3 className="text-sm font-semibold text-gray-900">Passed Rules</h3>
               <ul className="mt-2 space-y-2">
                 {gmc.passedRules.map((rule) => (
                   <li key={rule.id} className="flex items-start gap-2 text-sm text-green-700">
                     <span className="shrink-0 rounded bg-green-100 px-1.5 py-0.5 text-xs font-bold">{rule.id}</span>
                     <span>{rule.message}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {gmc.issues?.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-900">Issues</h3>
-              <ul className="mt-2 space-y-2">
-                {gmc.issues.map((issue) => (
-                  <li key={issue.id} className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm">
-                    <span className="shrink-0 rounded bg-red-200 px-1.5 py-0.5 text-xs font-bold text-red-700">{issue.id}</span>
-                    <div>
-                      <p className="font-medium text-red-900">{issue.name}</p>
-                      <p className="text-red-700">{issue.message}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {gmc.warnings?.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-900">Warnings</h3>
-              <ul className="mt-2 space-y-2">
-                {gmc.warnings.map((warn) => (
-                  <li key={warn.id} className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
-                    <span className="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-xs font-bold text-amber-800">{warn.id}</span>
-                    <div>
-                      <p className="font-medium text-amber-900">{warn.name}</p>
-                      <p className="text-amber-800">{warn.message}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {gmc.recommendations?.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-sm font-semibold text-gray-900">Recommendations</h3>
-              <ul className="mt-2 space-y-2">
-                {gmc.recommendations.map((rec) => (
-                  <li key={rec.id} className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="shrink-0 font-medium uppercase text-amber-600">{rec.priority}</span>
-                    <span>{rec.text}</span>
                   </li>
                 ))}
               </ul>
@@ -770,8 +997,37 @@ export default function Report() {
         </Card>
       )}
 
+      {/* Compliance Risk Summary — GMC Audit bundle */}
+      {gmcAuditProduct && (showAds || showTechnical || showTrustPolicy) && (
+        <Card className="mt-6">
+          <h2 className="text-lg font-semibold text-gray-900">Compliance Risk Summary</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Ads, technical, and trust & policy signals bundled with your Merchant Center audit.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {complianceRiskAreas.map((area) => (
+              <GmcRiskAreaPill key={area.id} area={area} />
+            ))}
+          </div>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+            {complianceRiskAreas.map((area) => (
+              <div key={`${area.id}-score`} className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{area.label}</dt>
+                <dd className="mt-1 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-gray-900">{area.score ?? '—'}</span>
+                  {area.score != null && <span className="text-xs text-gray-400">/100</span>}
+                </dd>
+                {area.failedRules?.length > 0 && (
+                  <p className="mt-1 text-xs text-amber-700">{area.failedRules.join(', ')}</p>
+                )}
+              </div>
+            ))}
+          </dl>
+        </Card>
+      )}
+
       {/* GMC Risk Details */}
-      {gmc?.riskDetails && (
+      {showGmc && gmc?.riskDetails && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">GMC Risk Details</h2>
           <p className="mt-1 text-sm text-gray-500">
@@ -940,7 +1196,7 @@ export default function Report() {
       )}
 
       {/* Product Pricing Analysis */}
-      {productsAudit?.productPages?.some((page) => page.pricing) && (
+      {(showGmc || showAds) && productsAudit?.productPages?.some((page) => page.pricing) && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Product Pricing Analysis</h2>
           <p className="mt-1 text-sm text-gray-500">
@@ -1015,23 +1271,92 @@ export default function Report() {
         </Card>
       )}
 
-      {/* SEO Audit */}
-      {(seoModule || seoRules.length > 0 || seo?.homepage || seoIssues.length > 0) && (
+      {/* SEO Health */}
+      {showSeo && (seoModule || seoRules.length > 0 || seo?.homepage || seoIssues.length > 0) && (
         <Card className="mt-6 border-blue-100">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">SEO Audit</h2>
+              <h2 className="text-lg font-semibold text-gray-900">SEO Health</h2>
               <p className="mt-1 text-sm text-gray-500">
-                On-page SEO signals from homepage analysis.
+                Organic search readiness from homepage on-page and technical signals.
               </p>
+              {seoHealth?.seoLabel && (
+                <span
+                  className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getSeoHealthLabelStyle(seoHealth.seoLabel)}`}
+                >
+                  {seoHealth.seoLabel}
+                </span>
+              )}
             </div>
             <ModuleScoreRing
-              score={seoScore}
-              label="SEO Score"
+              score={seoHealth?.seoScore ?? seoScore}
+              label="SEO Health Score"
               summary={seoModule?.summary}
             />
           </div>
 
+          {seoHealth?.riskSummary && (
+            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">SEO Risk Summary</h3>
+              <p className="mt-2 text-sm font-medium text-gray-900">{seoHealth.riskSummary.headline}</p>
+              <p className="mt-1 text-sm text-gray-600">{seoHealth.riskSummary.summary}</p>
+              {seoHealth.riskSummary.riskAreas?.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {seoHealth.riskSummary.riskAreas.map((area) => (
+                    <GmcRiskAreaPill key={area.id} area={area} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {seoCriticalIssues.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Critical Issues
+                <span className="ml-2 font-normal text-gray-500">({seoCriticalIssues.length})</span>
+              </h3>
+              <ul className="mt-3 space-y-3">
+                {seoCriticalIssues.map((issue) => (
+                  <IssueCard key={`${issue.id}-${issue.severity}-seo-critical`} issue={issue} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {seoWarningIssues.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Warnings
+                <span className="ml-2 font-normal text-gray-500">({seoWarningIssues.length})</span>
+              </h3>
+              <ul className="mt-3 space-y-3">
+                {seoWarningIssues.map((issue) => (
+                  <IssueCard key={`${issue.id}-${issue.severity}-seo-warning`} issue={issue} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {seoFixRecommendations.length > 0 && (
+            <div className="mt-5 border-t border-gray-100 pt-5">
+              <h3 className="text-sm font-semibold text-gray-900">Fix Recommendations</h3>
+              <p className="mt-1 text-xs text-gray-500">Prioritized by SEO impact on organic visibility.</p>
+              <GmcFixRecommendationList recommendations={seoFixRecommendations} />
+            </div>
+          )}
+
+          {seoCriticalIssues.length === 0 && seoWarningIssues.length === 0 && (
+            <div className="mt-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+              <p className="text-sm font-medium text-green-800">
+                No open SEO blockers detected in the current rule set.
+              </p>
+            </div>
+          )}
+
+          <div className="mt-5 border-t border-gray-100 pt-5">
+            <h3 className="text-sm font-semibold text-gray-900">Homepage Signals</h3>
+            <p className="mt-1 text-xs text-gray-500">Raw on-page SEO signals from the scanned homepage.</p>
           <dl className="mt-4 divide-y divide-gray-100">
             <div className="flex items-start justify-between gap-4 py-3">
               <dt className="text-sm font-medium text-gray-700">Title</dt>
@@ -1098,31 +1423,14 @@ export default function Report() {
               </dd>
             </div>
           </dl>
+          </div>
 
-          {seoModule?.issues?.length > 0 && (
-            <div className="mt-4 border-t border-gray-100 pt-4">
-              <h3 className="text-sm font-semibold text-gray-900">SEO Issues</h3>
-              <ul className="mt-2 space-y-2">
-                {seoModule.issues.map((issue) => (
-                  <li key={issue.id} className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
-                    <span className="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-xs font-bold text-amber-800">{issue.id}</span>
-                    <div>
-                      <p className="font-medium text-amber-900">{issue.name}</p>
-                      <p className="text-amber-800">{issue.message}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {seoRules.length > 0 && !seoModule && <RuleResultsList rules={seoRules} />}
-          <ModuleIssuesList issues={seoIssues.filter((issue) => !seoModule?.issues?.some((item) => item.id === issue.id))} />
+          {seoRules.length > 0 && !seoModule && !seoHealth && <RuleResultsList rules={seoRules} />}
         </Card>
       )}
 
       {/* Ads Audit */}
-      {(adsRules.length > 0 || adsIssues.length > 0 || modules?.ads) && (
+      {showAds && (adsRules.length > 0 || adsIssues.length > 0 || modules?.ads) && (
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1197,7 +1505,7 @@ export default function Report() {
       )}
 
       {/* Technical Audit */}
-      {(technicalModule || technicalRules.length > 0 || technicalIssues.length > 0) && (
+      {showTechnical && (technicalModule || technicalRules.length > 0 || technicalIssues.length > 0) && (
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1218,11 +1526,12 @@ export default function Report() {
       )}
 
       {/* Trust & Policy Audit */}
-      {(trustPolicyRules.length > 0 ||
-        trustPolicyIssues.length > 0 ||
-        pages ||
-        contactInfo ||
-        pageContent) && (
+      {showTrustPolicy &&
+        (trustPolicyRules.length > 0 ||
+          trustPolicyIssues.length > 0 ||
+          pages ||
+          contactInfo ||
+          pageContent) && (
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1348,15 +1657,16 @@ export default function Report() {
         </Card>
       )}
 
-      {/* Platform */}
+      {fullAudit && (
       <Card className="mt-10">
         <h2 className="text-lg font-semibold text-gray-900">Platform Detection</h2>
         <div className="mt-4">
           <PlatformBadge platform={platform} />
         </div>
       </Card>
+      )}
 
-      {import.meta.env.DEV && detectionSources && (
+      {import.meta.env.DEV && fullAudit && detectionSources && (
         <Card className="mt-6 border-dashed border-brand-200 bg-brand-50/40">
           <h2 className="text-lg font-semibold text-gray-900">Detection Sources</h2>
           <p className="mt-1 text-xs text-gray-500">Development debug view — data extraction provenance.</p>
@@ -1423,7 +1733,7 @@ export default function Report() {
         </Card>
       )}
 
-      {/* Meta */}
+      {fullAudit && (
       <Card className="mt-6">
         <h2 className="text-lg font-semibold text-gray-900">Meta Information</h2>
         <dl className="mt-4 divide-y divide-gray-100">
@@ -1447,8 +1757,9 @@ export default function Report() {
           ))}
         </dl>
       </Card>
+      )}
 
-      {/* Links summary */}
+      {fullAudit && (
       <Card className="mt-6">
         <h2 className="text-lg font-semibold text-gray-900">Link Discovery</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -1475,6 +1786,7 @@ export default function Report() {
           </ul>
         )}
       </Card>
+      )}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
         <Link to="/">

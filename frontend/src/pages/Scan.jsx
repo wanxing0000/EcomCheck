@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import { DEFAULT_AUDIT_MODE, getAuditProductForMode } from '../data/auditProducts.js'
+import { getOrCreateClientId } from '../utils/usageLimit.js'
 
 const SCAN_STEPS = [
   { id: 'connect', label: 'Connecting to website' },
@@ -14,6 +16,8 @@ export default function Scan() {
   const location = useLocation()
   const navigate = useNavigate()
   const url = location.state?.url
+  const mode = location.state?.mode || DEFAULT_AUDIT_MODE
+  const auditProduct = location.state?.auditProduct || getAuditProductForMode(mode)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [progress, setProgress] = useState(0)
@@ -41,7 +45,7 @@ export default function Scan() {
     fetch('/api/audit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url, mode, clientId: getOrCreateClientId() }),
     })
       .then(async (res) => {
         const json = await res.json()
@@ -71,7 +75,7 @@ export default function Scan() {
       cancelled = true
       clearInterval(stepTimer)
     }
-  }, [url, navigate])
+  }, [url, mode, navigate])
 
   if (!url) return null
 
@@ -95,10 +99,12 @@ export default function Scan() {
           )}
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-          {error ? 'Scan failed' : isComplete ? 'Scan complete!' : 'Scanning your store...'}
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">{auditProduct.name}</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+          {error ? 'Scan failed' : isComplete ? 'Scan complete!' : `Running ${auditProduct.name}...`}
         </h1>
         <p className="mt-2 text-gray-500">{url}</p>
+        <p className="mx-auto mt-3 max-w-md text-sm text-gray-600">{auditProduct.description}</p>
       </div>
 
       {error ? (
