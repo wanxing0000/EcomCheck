@@ -1,4 +1,7 @@
 import { scoreAudit, scoreCategory } from './scorer.js'
+import { scoreModuleResults } from '../modules/_shared/scorer.js'
+
+const COMPLIANCE_CATEGORIES = ['gmc', 'ads', 'technical', 'trust', 'policy']
 
 const SEVERITY_LABELS = {
   high: 'High Risk',
@@ -13,6 +16,7 @@ const CATEGORY_LABELS = {
   technical: 'Technical',
   ads: 'Ads',
   gmc: 'GMC',
+  seo: 'SEO',
 }
 
 const RULE_GUIDANCE = {
@@ -111,6 +115,61 @@ const RULE_GUIDANCE = {
     impact: 'Incomplete business information may delay Merchant Center verification.',
     fixSuggestion: 'Display business email, phone, and address on your website footer or contact page.',
   },
+  G008: {
+    whyItMatters: 'Customers and Google need to know which payment methods you accept before purchase.',
+    impact: 'Missing payment information reduces trust and may fail GMC website requirement checks.',
+    fixSuggestion: 'Publish payment methods and billing terms on a payment policy or terms of sale page.',
+  },
+  G009: {
+    whyItMatters: 'Product pages must allow customers to add items to cart or buy directly.',
+    impact: 'Missing purchase buttons can trigger misrepresentation concerns in Google Shopping.',
+    fixSuggestion: 'Ensure every product detail page has a working Add to Cart or Buy Now button.',
+  },
+  G010: {
+    whyItMatters: 'Shipping policy quality affects buyer expectations and GMC shipping program compliance.',
+    impact: 'Vague shipping policies increase disputes and may hurt Merchant Center approval.',
+    fixSuggestion: 'Include delivery timeframes, regions served, and shipping costs in your shipping policy.',
+  },
+  S001: {
+    whyItMatters: 'The title tag is the primary headline shown in search engine results.',
+    impact: 'Missing or poorly sized titles reduce click-through rates from organic search.',
+    fixSuggestion: 'Set a unique homepage title between 30 and 60 characters with brand and key terms.',
+  },
+  S002: {
+    whyItMatters: 'Meta descriptions influence search snippet text and user click decisions.',
+    impact: 'Weak descriptions hurt organic CTR and make listings look incomplete.',
+    fixSuggestion: 'Write a compelling meta description between 120 and 160 characters.',
+  },
+  S003: {
+    whyItMatters: 'A single H1 clarifies the main topic of the page for search engines.',
+    impact: 'Missing or multiple H1 tags weaken page hierarchy and keyword focus.',
+    fixSuggestion: 'Use exactly one H1 on the homepage and structure subsections with H2/H3.',
+  },
+  S004: {
+    whyItMatters: 'Canonical URLs tell search engines which URL is the preferred version of a page.',
+    impact: 'Missing or relative canonicals can cause duplicate content indexing issues.',
+    fixSuggestion: 'Add an absolute canonical link tag pointing to your preferred homepage URL.',
+  },
+  S005: {
+    whyItMatters: 'Open Graph tags control how your store appears when shared on social platforms.',
+    impact: 'Missing OG tags produce plain link previews and lower social engagement.',
+    fixSuggestion: 'Add og:title, og:description, and og:image meta tags to your homepage.',
+  },
+  S006: {
+    whyItMatters: 'Organization schema helps search engines understand your brand entity.',
+    impact: 'Missing organization markup reduces eligibility for brand-rich search features.',
+    fixSuggestion: 'Add Organization or LocalBusiness JSON-LD with name, logo, and contact info.',
+  },
+  S007: {
+    whyItMatters: 'Product schema enables rich product results and better organic product visibility.',
+    impact: 'E-commerce sites without Product JSON-LD miss rich snippets and product discovery signals.',
+    fixSuggestion: 'Implement Product JSON-LD on product detail pages with required offer fields.',
+  },
+  S008: {
+    whyItMatters: 'robots.txt and sitemap.xml guide search engine crawling and indexing.',
+    impact: 'Missing files or blocking all crawlers can prevent products from appearing in search.',
+    fixSuggestion: 'Publish robots.txt, avoid Disallow: /, and submit an XML sitemap in Search Console.',
+  },
 }
 
 function enrichIssue(rule) {
@@ -132,17 +191,18 @@ function enrichIssue(rule) {
 }
 
 function buildQuickSummary(scores, issueCounts) {
+  const complianceScore = scores.compliance ?? scores.overall
   const { overall, gmc, highRisk, gmcHighRisk } = issueCounts
 
   if (overall === 0) {
     return 'Your store passed all compliance checks. You are in strong shape for Google Merchant Center and advertising.'
   }
 
-  if (scores.overall >= 85 && gmcHighRisk === 0) {
+  if (complianceScore >= 85 && gmcHighRisk === 0) {
     return `Your store is generally healthy.${gmc > 0 ? ` ${gmc} GMC advisory item(s) could still be improved.` : ''}`
   }
 
-  if (scores.overall >= 70) {
+  if (complianceScore >= 70) {
     return `Your store is generally healthy.${gmcHighRisk > 0 ? ` ${gmcHighRisk} issue(s) may affect Google Merchant Center approval.` : ` ${overall} item(s) should be addressed to improve compliance.`}`
   }
 
@@ -153,6 +213,14 @@ function buildQuickSummary(scores, issueCounts) {
   return `${overall} compliance item(s) were found. Address them to improve trust, ads performance, and marketplace readiness.`
 }
 
+function buildSeoSummary(seoScore, seoIssueCount) {
+  if (seoScore == null) return null
+  if (seoIssueCount === 0) {
+    return `SEO score is ${seoScore}/100 with no open SEO issues.`
+  }
+  return `SEO score is ${seoScore}/100 with ${seoIssueCount} SEO item(s) to review separately from compliance.`
+}
+
 function getCoverageLabel(score) {
   if (score == null) return null
   if (score >= 90) return 'Excellent'
@@ -161,12 +229,12 @@ function getCoverageLabel(score) {
   return 'Critical'
 }
 
-function buildCoverage(scores) {
+function buildModuleCoverage(scoreMap) {
   /** @type {Record<string, { score: number, label: string }>} */
   const coverage = {}
 
-  for (const [key, score] of Object.entries(scores)) {
-    if (key === 'overall' || score == null) continue
+  for (const [key, score] of Object.entries(scoreMap)) {
+    if (score == null) continue
     coverage[key] = {
       score,
       label: getCoverageLabel(score),
@@ -176,15 +244,42 @@ function buildCoverage(scores) {
   return coverage
 }
 
+/** @deprecated Use split coverage.compliance / coverage.seo — kept for legacy readers */
+function buildCoverage(scores) {
+  return buildModuleCoverage(
+    Object.fromEntries(
+      Object.entries(scores).filter(([key, value]) => key !== 'overall' && key !== 'compliance' && value != null)
+    )
+  )
+}
+
+function buildSplitCoverage(scores) {
+  return {
+    compliance: buildModuleCoverage({
+      gmc: scores.gmc,
+      ads: scores.ads,
+      technical: scores.technical,
+      trust: scores.trust,
+      policy: scores.policy,
+    }),
+    seo: buildModuleCoverage({
+      seo: scores.seo,
+    }),
+  }
+}
+
 function buildHealthStatus(scores, issueCounts) {
-  if (issueCounts.total === 0) return 'healthy'
-  if (issueCounts.highRisk > 0 || scores.overall < 50) return 'critical'
-  if (scores.overall >= 85 && issueCounts.highRisk === 0) return 'healthy'
+  const complianceScore = scores.compliance ?? scores.overall
+  if (issueCounts.complianceTotal === 0) return 'healthy'
+  if (issueCounts.highRisk > 0 || complianceScore < 50) return 'critical'
+  if (complianceScore >= 85 && issueCounts.highRisk === 0) return 'healthy'
   return 'needs_attention'
 }
 
 function buildExecutiveHeadline(healthStatus, issueCounts) {
-  if (healthStatus === 'healthy' && issueCounts.total === 0) {
+  const complianceTotal = issueCounts.complianceTotal ?? issueCounts.overall ?? issueCounts.total
+
+  if (healthStatus === 'healthy' && complianceTotal === 0) {
     return 'Your store is in excellent shape for Google Shopping and advertising.'
   }
 
@@ -233,12 +328,18 @@ function buildImprovementRoadmap(allIssues) {
 
 function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary) {
   const healthStatus = buildHealthStatus(scores, issueCounts)
+  const complianceIssues = allIssues.filter((issue) => issue.category !== 'seo')
+  const seoIssues = allIssues.filter((issue) => issue.category === 'seo')
 
   return {
     headline: buildExecutiveHeadline(healthStatus, issueCounts),
     healthStatus,
     summary: quickSummary,
-    topPriorities: buildTopPriorities(allIssues),
+    complianceScore: scores.compliance ?? scores.overall,
+    seoScore: scores.seo ?? null,
+    seoSummary: buildSeoSummary(scores.seo, seoIssues.length),
+    topPriorities: buildTopPriorities(complianceIssues),
+    seoPriorities: buildTopPriorities(seoIssues, 3),
   }
 }
 
@@ -253,6 +354,12 @@ export function buildProfessionalReport(ruleResults, extraWarnings = []) {
   const gmcResult = scoreCategory(ruleResults, 'gmc')
   const adsResult = scoreCategory(ruleResults, 'ads')
   const technicalResult = scoreCategory(ruleResults, 'technical')
+  const trustResult = scoreCategory(ruleResults, 'trust')
+  const policyResult = scoreCategory(ruleResults, 'policy')
+  const seoResult = scoreCategory(ruleResults, 'seo')
+
+  const complianceRules = ruleResults.filter((rule) => COMPLIANCE_CATEGORIES.includes(rule.category))
+  const complianceResult = scoreModuleResults(complianceRules)
 
   const failedRules = ruleResults.filter((rule) => !rule.passed)
   const warningRules = failedRules.filter((rule) => rule.severity === 'warning')
@@ -284,27 +391,39 @@ export function buildProfessionalReport(ruleResults, extraWarnings = []) {
     technical: allIssues.filter((i) => i.category === 'technical'),
     ads: allIssues.filter((i) => i.category === 'ads'),
     gmc: allIssues.filter((i) => i.category === 'gmc'),
+    seo: allIssues.filter((i) => i.category === 'seo'),
   }
 
   const gmcHighRisk = issuesByCategory.gmc.filter((i) => i.severity === 'high').length
+  const complianceIssues = allIssues.filter((issue) => issue.category !== 'seo')
 
   const scores = {
     overall: overallResult.score,
+    compliance: complianceResult.score,
     gmc: gmcResult.score,
     ads: adsResult.score,
     technical: technicalResult.score,
+    trust: trustResult.score,
+    policy: policyResult.score,
+    seo: seoResult.score,
   }
 
   const issueCounts = {
     total: allIssues.length,
-    highRisk: allIssues.filter((i) => i.severity === 'high').length,
-    attention: allIssues.filter((i) => i.severity === 'medium').length,
-    recommendation: allIssues.filter((i) => i.severity === 'low' || i.severity === 'warning').length,
+    complianceTotal: complianceIssues.length,
+    seoTotal: issuesByCategory.seo.length,
+    highRisk: complianceIssues.filter((i) => i.severity === 'high').length,
+    attention: complianceIssues.filter((i) => i.severity === 'medium').length,
+    recommendation: complianceIssues.filter(
+      (i) => i.severity === 'low' || i.severity === 'warning'
+    ).length,
     byCategory: Object.fromEntries(
       Object.entries(issuesByCategory).map(([key, items]) => [key, items.length])
     ),
+    overall: complianceIssues.length,
     gmc: issuesByCategory.gmc.length,
     gmcHighRisk,
+    seo: issuesByCategory.seo.length,
   }
 
   const quickSummary = buildQuickSummary(scores, issueCounts)
@@ -312,11 +431,13 @@ export function buildProfessionalReport(ruleResults, extraWarnings = []) {
   return {
     quickSummary,
     executiveSummary: buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary),
-    improvementRoadmap: buildImprovementRoadmap(allIssues),
-    coverage: buildCoverage(scores),
+    improvementRoadmap: buildImprovementRoadmap(complianceIssues),
+    coverage: buildSplitCoverage(scores),
     scores,
     issueCounts: {
       total: issueCounts.total,
+      complianceTotal: issueCounts.complianceTotal,
+      seoTotal: issueCounts.seoTotal,
       highRisk: issueCounts.highRisk,
       attention: issueCounts.attention,
       recommendation: issueCounts.recommendation,

@@ -12,6 +12,9 @@ function buildGmcRiskDetails(gmcRules) {
     returnPolicy: byId.G003?.policyQuality ?? null,
     priceConsistency: byId.G006?.priceRisks ?? null,
     businessInformation: byId.G007?.businessInfo ?? null,
+    purchaseFlow: byId.G009?.purchaseFlow ?? null,
+    paymentPolicy: byId.G008?.policyQuality ?? null,
+    shippingPolicy: byId.G010?.policyQuality ?? null,
   }
 }
 
@@ -105,6 +108,9 @@ export async function handleAudit(req, res) {
       returnPolicy: null,
       priceConsistency: null,
       businessInformation: null,
+      purchaseFlow: null,
+      paymentPolicy: null,
+      shippingPolicy: null,
     }
 
     const g006Warnings = (riskDetails.priceConsistency?.pageWarnings || []).map((warn) => ({

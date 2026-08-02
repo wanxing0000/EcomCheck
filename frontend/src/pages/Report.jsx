@@ -15,16 +15,6 @@ const PAGE_LABELS = {
   shippingPolicy: 'Shipping Policy',
 }
 
-const CATEGORY_ORDER = ['trust', 'policy', 'technical', 'ads', 'gmc']
-
-const CATEGORY_LABELS = {
-  trust: 'Trust',
-  policy: 'Policy',
-  technical: 'Technical',
-  ads: 'Ads',
-  gmc: 'GMC',
-}
-
 const MODULE_LABELS = {
   gmc: 'GMC',
   ads: 'Ads',
@@ -70,25 +60,116 @@ function getHealthStatusLabel(status) {
   }
 }
 
+function isCoverageModuleEntry(value) {
+  return value != null && typeof value === 'object' && value.score != null
+}
+
+function mapCoverageEntries(entries) {
+  return entries.map(([id, item]) => ({
+    id,
+    label: MODULE_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1),
+    score: item.score,
+    statusLabel: item.label,
+  }))
+}
+
+function flattenCoverageGroup(group) {
+  if (!group || typeof group !== 'object') return []
+  return mapCoverageEntries(Object.entries(group).filter(([, item]) => isCoverageModuleEntry(item)))
+}
+
 function getCoverageEntries(professionalReport) {
-  if (professionalReport.coverage) {
-    return Object.entries(professionalReport.coverage).map(([id, item]) => ({
-      id,
-      label: MODULE_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1),
-      score: item.score,
-      statusLabel: item.label,
-    }))
+  const coverage = professionalReport.coverage
+
+  if (coverage?.compliance || coverage?.seo) {
+    return [...flattenCoverageGroup(coverage.compliance), ...flattenCoverageGroup(coverage.seo)]
+  }
+
+  if (coverage) {
+    const flatEntries = flattenCoverageGroup(coverage)
+    if (flatEntries.length > 0) return flatEntries
   }
 
   const scores = professionalReport.scores || {}
   return Object.entries(scores)
-    .filter(([id, value]) => id !== 'overall' && value != null)
+    .filter(([id, value]) => id !== 'overall' && id !== 'compliance' && value != null)
     .map(([id, value]) => ({
       id,
       label: MODULE_LABELS[id] || id.charAt(0).toUpperCase() + id.slice(1),
       score: value,
       statusLabel: value >= 90 ? 'Excellent' : value >= 70 ? 'Good' : value >= 50 ? 'Needs Improvement' : 'Critical',
     }))
+}
+
+function getCategoryIssues(professionalReport, category) {
+  if (professionalReport.issuesByCategory?.[category]?.length) {
+    return professionalReport.issuesByCategory[category]
+  }
+  return professionalReport.issues?.filter((item) => item.category === category) ?? []
+}
+
+function getTrustPolicyIssues(professionalReport) {
+  return [...getCategoryIssues(professionalReport, 'trust'), ...getCategoryIssues(professionalReport, 'policy')]
+}
+
+function ModuleScoreRing({ score, label, summary }) {
+  if (score == null) return null
+
+  return (
+    <div className="flex flex-col items-center">
+      <div
+        className="flex h-20 w-20 items-center justify-center rounded-full border-[6px]"
+        style={{ borderColor: scoreColor(score) }}
+      >
+        <span className="text-2xl font-bold text-gray-900">{score}</span>
+      </div>
+      <p className="mt-1 text-xs font-medium text-gray-600">{label}</p>
+      {summary && (
+        <p className="text-xs text-gray-400">
+          {summary.passed ?? 0}/{summary.total ?? 0} passed
+        </p>
+      )}
+    </div>
+  )
+}
+
+function RuleResultsList({ rules }) {
+  if (!rules?.length) return null
+
+  return (
+    <ul className="mt-4 divide-y divide-gray-100">
+      {rules.map((rule) => (
+        <li key={rule.id} className="flex items-start justify-between gap-4 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-700">{rule.id}</span>
+              <p className="text-sm font-medium text-gray-900">{rule.name}</p>
+            </div>
+            <p className="mt-1 text-sm text-gray-600">{rule.message}</p>
+            {!rule.passed && rule.recommendation && (
+              <p className="mt-1 text-xs text-gray-500">{rule.recommendation}</p>
+            )}
+          </div>
+          <StatusBadge found={rule.passed} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function ModuleIssuesList({ issues }) {
+  if (!issues?.length) return null
+
+  return (
+    <div className="mt-4 border-t border-gray-100 pt-4">
+      <h3 className="text-sm font-semibold text-gray-900">Issues</h3>
+      <ul className="mt-3 space-y-3">
+        {issues.map((issue) => (
+          <IssueCard key={`${issue.id}-${issue.severity}`} issue={issue} />
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function RoadmapItem({ item }) {
@@ -233,9 +314,14 @@ export default function Report() {
 
   if (!url || !crawlResult) return null
 
-  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc, detectionSources, report } = crawlResult
+  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc, modules, detectionSources, report } = crawlResult
 
   const adsRules = rules?.filter((r) => r.category === 'ads') ?? []
+  const seoRules = rules?.filter((r) => r.category === 'seo') ?? []
+  const technicalRules = rules?.filter((r) => r.category === 'technical') ?? []
+  const trustPolicyRules = rules?.filter((r) => r.category === 'trust' || r.category === 'policy') ?? []
+  const seoModule = modules?.seo
+  const technicalModule = modules?.technical
   const professionalReport = report || {
     quickSummary: score === 100 ? 'Your store passed all compliance checks.' : `${issues?.length ?? 0} issue(s) found.`,
     scores: { overall: score, gmc: gmc?.score, ads: null, technical: null },
@@ -249,10 +335,24 @@ export default function Report() {
       fixSuggestion: recommendations?.find((r) => r.id === issue.id)?.text || '',
     })),
   }
+  const gmcIssues = getCategoryIssues(professionalReport, 'gmc')
+  const seoIssues = getCategoryIssues(professionalReport, 'seo')
+  const adsIssues = getCategoryIssues(professionalReport, 'ads')
+  const technicalIssues = getCategoryIssues(professionalReport, 'technical')
+  const trustPolicyIssues = getTrustPolicyIssues(professionalReport)
 
   const overallScore = professionalReport.scores?.overall ?? score
-  const coverageEntries = getCoverageEntries(professionalReport)
   const executiveSummary = professionalReport.executiveSummary
+  const complianceScore =
+    executiveSummary?.complianceScore ?? professionalReport.scores?.compliance ?? overallScore
+  const seoScore = executiveSummary?.seoScore ?? professionalReport.scores?.seo ?? seoModule?.score
+  const complianceIssueCount =
+    professionalReport.issueCounts?.complianceTotal ??
+    professionalReport.issues?.filter((item) => item.category !== 'seo').length ??
+    issues?.length ??
+    0
+  const seoIssueCount = professionalReport.issueCounts?.seoTotal ?? seoIssues.length
+  const coverageEntries = getCoverageEntries(professionalReport)
   const improvementRoadmap = professionalReport.improvementRoadmap
 
   function exportReportJson() {
@@ -310,13 +410,27 @@ export default function Report() {
           </div>
         </div>
 
-        {overallScore != null && (
-          <div className="flex flex-col items-center">
-            <ScoreRing label="Overall Score" value={overallScore} size="lg" />
-            <p className="mt-2 text-xs text-gray-400">
-              {professionalReport.issueCounts?.total ?? issues?.length ?? 0} item
-              {(professionalReport.issueCounts?.total ?? issues?.length ?? 0) !== 1 ? 's' : ''} to review
-            </p>
+        {(complianceScore != null || seoScore != null) && (
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
+            {complianceScore != null && (
+              <div className="flex flex-col items-center">
+                <ScoreRing label="Compliance Score" value={complianceScore} size="lg" />
+                <p className="mt-2 text-xs text-gray-400">
+                  {complianceIssueCount} compliance item{complianceIssueCount !== 1 ? 's' : ''} to review
+                </p>
+                {overallScore != null && overallScore !== complianceScore && (
+                  <p className="mt-1 text-xs text-gray-400">Overall (incl. SEO): {overallScore}</p>
+                )}
+              </div>
+            )}
+            {seoScore != null && (
+              <div className="flex flex-col items-center">
+                <ScoreRing label="SEO Score" value={seoScore} />
+                <p className="mt-2 text-xs text-gray-400">
+                  {seoIssueCount} SEO item{seoIssueCount !== 1 ? 's' : ''} to review
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -363,6 +477,34 @@ export default function Report() {
               </ol>
             </div>
           )}
+          {executiveSummary.seoSummary && (
+            <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-900">SEO Overview</h3>
+                {executiveSummary.seoScore != null && (
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                    {executiveSummary.seoScore}/100
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">{executiveSummary.seoSummary}</p>
+              {executiveSummary.seoPriorities?.length > 0 && (
+                <ol className="mt-3 space-y-2">
+                  {executiveSummary.seoPriorities.map((item) => (
+                    <li key={item.priority} className="rounded-lg border border-blue-100 bg-white/80 px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+                          {item.priority}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">{item.title}</span>
+                      </div>
+                      {item.action && <p className="mt-1 text-xs text-gray-600">{item.action}</p>}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
         </Card>
       )}
 
@@ -378,11 +520,26 @@ export default function Report() {
       {professionalReport.scores && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Compliance Scores</h2>
-          <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <ScoreRing label="Overall" value={professionalReport.scores.overall} />
-            <ScoreRing label="GMC" value={professionalReport.scores.gmc} />
+          <p className="mt-1 text-sm text-gray-500">Compliance modules only — SEO is tracked separately.</p>
+          <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-6">
+            <ScoreRing label="Compliance" value={professionalReport.scores.compliance ?? complianceScore} />
+            <ScoreRing label="GMC" value={professionalReport.scores.gmc ?? gmc?.score} />
             <ScoreRing label="Ads" value={professionalReport.scores.ads} />
-            <ScoreRing label="Technical" value={professionalReport.scores.technical} />
+            <ScoreRing label="Technical" value={professionalReport.scores.technical ?? technicalModule?.score} />
+            <ScoreRing label="Trust" value={professionalReport.scores.trust} />
+            <ScoreRing label="Policy" value={professionalReport.scores.policy} />
+          </div>
+        </Card>
+      )}
+
+      {seoScore != null && (
+        <Card className="mt-6 border-blue-100 bg-gradient-to-r from-blue-50/80 to-white">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">SEO Score</h2>
+              <p className="mt-1 text-sm text-gray-500">On-page SEO audit, separate from compliance scoring.</p>
+            </div>
+            <ScoreRing label="SEO" value={seoScore} />
           </div>
         </Card>
       )}
@@ -458,36 +615,14 @@ export default function Report() {
         </Card>
       )}
 
-      {/* Professional Issues by Category */}
-      {professionalReport.issues?.length > 0 ? (
-        <Card className="mt-6">
-          <h2 className="text-lg font-semibold text-gray-900">Issues & Recommendations</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Prioritized findings grouped by area. Fix high-risk items first.
-          </p>
-          <div className="mt-6 space-y-8">
-            {CATEGORY_ORDER.map((category) => {
-              const categoryIssues =
-                professionalReport.issuesByCategory?.[category] ||
-                professionalReport.issues.filter((item) => item.category === category)
-              if (!categoryIssues?.length) return null
-
-              return (
-                <div key={category}>
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    {CATEGORY_LABELS[category] || category}
-                  </h3>
-                  <ul className="mt-3 space-y-3">
-                    {categoryIssues.map((issue) => (
-                      <IssueCard key={`${issue.id}-${issue.severity}`} issue={issue} />
-                    ))}
-                  </ul>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-      ) : (
+      {/* Professional Issues by Category — compliance-only fallback when no module sections render */}
+      {complianceIssueCount === 0 &&
+        seoIssueCount === 0 &&
+        !gmc &&
+        !adsRules.length &&
+        !technicalRules.length &&
+        !trustPolicyRules.length &&
+        !(seoModule || seoRules.length > 0 || seo?.homepage) && (
         <Card className="mt-6 border-green-200 bg-green-50">
           <p className="text-sm font-medium text-green-800">
             All compliance checks passed for the current rule set.
@@ -495,28 +630,17 @@ export default function Report() {
         </Card>
       )}
 
-      {/* GMC Compliance */}
+      {/* GMC Audit */}
       {gmc && (
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">GMC Compliance</h2>
+              <h2 className="text-lg font-semibold text-gray-900">GMC Audit</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Google Merchant Center readiness checks.
               </p>
             </div>
-            <div className="flex flex-col items-center">
-              <div
-                className="flex h-20 w-20 items-center justify-center rounded-full border-[6px]"
-                style={{ borderColor: scoreColor(gmc?.score) }}
-              >
-                <span className="text-2xl font-bold text-gray-900">{gmc.score}</span>
-              </div>
-              <p className="mt-1 text-xs font-medium text-gray-600">GMC Score</p>
-              <p className="text-xs text-gray-400">
-                {gmc.summary?.passed ?? 0}/{gmc.summary?.total ?? 0} passed
-              </p>
-            </div>
+            <ModuleScoreRing score={gmc?.score ?? professionalReport.scores?.gmc} label="GMC Score" summary={gmc?.summary} />
           </div>
 
           {gmc.passedRules?.length > 0 && (
@@ -651,7 +775,7 @@ export default function Report() {
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">GMC Risk Details</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Deep quality signals for return policy, price consistency, and business trust.
+            Deep quality signals for return policy, shipping, payment, purchase flow, and business trust.
           </p>
 
           {gmc.riskDetails.returnPolicy && (
@@ -741,6 +865,77 @@ export default function Report() {
               )}
             </div>
           )}
+
+          {gmc.riskDetails.purchaseFlow && (
+            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Purchase Flow</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Scanned {gmc.riskDetails.purchaseFlow.scannedPages ?? 0} page(s) · Add to Cart on{' '}
+                {gmc.riskDetails.purchaseFlow.withAddToCart ?? 0} · Buy Now on{' '}
+                {gmc.riskDetails.purchaseFlow.withBuyNow ?? 0}
+              </p>
+              {gmc.riskDetails.purchaseFlow.pages?.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-gray-500">
+                  {gmc.riskDetails.purchaseFlow.pages.map((page) => (
+                    <li key={page.url} className="truncate">
+                      {page.addToCart || page.buyNow ? '✓' : '✗'} {page.url}
+                      {page.addToCart && ' · cart'}
+                      {page.buyNow && ' · buy'}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {gmc.riskDetails.paymentPolicy && (
+            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Payment Policy Quality</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Quality score:{' '}
+                <span className="font-medium">{gmc.riskDetails.paymentPolicy.qualityScore ?? 0}/100</span>
+                {gmc.riskDetails.paymentPolicy.pageSource && (
+                  <span className="text-gray-500"> · source: {gmc.riskDetails.paymentPolicy.pageSource}</span>
+                )}
+              </p>
+              {gmc.riskDetails.paymentPolicy.checks && (
+                <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {Object.entries(gmc.riskDetails.paymentPolicy.checks).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between text-sm">
+                      <dt className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</dt>
+                      <dd className={value ? 'font-medium text-green-700' : 'font-medium text-amber-700'}>
+                        {value ? 'Yes' : 'No'}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </div>
+          )}
+
+          {gmc.riskDetails.shippingPolicy && (
+            <div className="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Shipping Policy Quality</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Quality score:{' '}
+                <span className="font-medium">{gmc.riskDetails.shippingPolicy.qualityScore ?? 0}/100</span>
+                {' · '}
+                Text length: {formatNumber(gmc.riskDetails.shippingPolicy.textLength ?? 0)} chars
+              </p>
+              {gmc.riskDetails.shippingPolicy.checks && (
+                <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {Object.entries(gmc.riskDetails.shippingPolicy.checks).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between text-sm">
+                      <dt className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</dt>
+                      <dd className={value ? 'font-medium text-green-700' : 'font-medium text-amber-700'}>
+                        {value ? 'Yes' : 'No'}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </div>
+          )}
         </Card>
       )}
 
@@ -820,32 +1015,130 @@ export default function Report() {
         </Card>
       )}
 
-      {/* Ads Compliance */}
-      {adsRules.length > 0 && (
-        <Card className="mt-6">
-          <h2 className="text-lg font-semibold text-gray-900">Ads Compliance</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Google Merchant Center and Meta Ads tracking checks.
-          </p>
-          <ul className="mt-4 divide-y divide-gray-100">
-            {adsRules.map((rule) => (
-              <li key={rule.id} className="flex items-start justify-between gap-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-700">
-                      {rule.id}
-                    </span>
-                    <p className="text-sm font-medium text-gray-900">{rule.name}</p>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-600">{rule.message}</p>
-                  {!rule.passed && rule.recommendation && (
-                    <p className="mt-1 text-xs text-gray-500">{rule.recommendation}</p>
-                  )}
+      {/* SEO Audit */}
+      {(seoModule || seoRules.length > 0 || seo?.homepage || seoIssues.length > 0) && (
+        <Card className="mt-6 border-blue-100">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">SEO Audit</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                On-page SEO signals from homepage analysis.
+              </p>
+            </div>
+            <ModuleScoreRing
+              score={seoScore}
+              label="SEO Score"
+              summary={seoModule?.summary}
+            />
+          </div>
+
+          <dl className="mt-4 divide-y divide-gray-100">
+            <div className="flex items-start justify-between gap-4 py-3">
+              <dt className="text-sm font-medium text-gray-700">Title</dt>
+              <dd className="min-w-0 flex-1 text-right text-sm text-gray-900">
+                <p className="truncate">{meta?.title || crawlResult.title || '(not found)'}</p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {seo?.homepage?.titleLength ?? meta?.title?.length ?? 0} chars
+                </p>
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4 py-3">
+              <dt className="text-sm font-medium text-gray-700">Description</dt>
+              <dd className="min-w-0 flex-1 text-right text-sm text-gray-900">
+                <p className="line-clamp-2">{meta?.description || crawlResult.description || '(not found)'}</p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {seo?.homepage?.descriptionLength ?? meta?.description?.length ?? 0} chars
+                </p>
+              </dd>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <dt className="text-sm font-medium text-gray-700">H1</dt>
+              <dd className="text-sm text-gray-900">
+                {seo?.homepage?.h1Count ?? 0} heading{(seo?.homepage?.h1Count ?? 0) !== 1 ? 's' : ''}
+                {seo?.homepage?.h1Texts?.[0] && (
+                  <span className="block max-w-xs truncate text-xs text-gray-400">
+                    {seo.homepage.h1Texts[0]}
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <dt className="text-sm font-medium text-gray-700">Schema</dt>
+              <dd className="text-right text-sm text-gray-900">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <StatusBadge found={seo?.structuredData?.organization?.found} />
+                  <StatusBadge found={seo?.structuredData?.product?.found} />
                 </div>
-                <StatusBadge found={rule.passed} />
-              </li>
-            ))}
-          </ul>
+                <p className="mt-1 text-xs text-gray-400">
+                  Org · Product
+                  {seo?.structuredData?.product?.count
+                    ? ` (${seo.structuredData.product.count})`
+                    : ''}
+                </p>
+              </dd>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <dt className="text-sm font-medium text-gray-700">Robots</dt>
+              <dd className="flex items-center gap-2">
+                <StatusBadge found={seo?.robotsTxt?.exists} />
+                {seo?.robotsTxt?.blocksAll && (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                    Blocks all
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <dt className="text-sm font-medium text-gray-700">Sitemap</dt>
+              <dd className="flex items-center gap-2">
+                <StatusBadge found={seo?.sitemap?.exists} />
+                {seo?.sitemap?.statusCode && (
+                  <span className="text-xs text-gray-400">HTTP {seo.sitemap.statusCode}</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+
+          {seoModule?.issues?.length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <h3 className="text-sm font-semibold text-gray-900">SEO Issues</h3>
+              <ul className="mt-2 space-y-2">
+                {seoModule.issues.map((issue) => (
+                  <li key={issue.id} className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+                    <span className="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-xs font-bold text-amber-800">{issue.id}</span>
+                    <div>
+                      <p className="font-medium text-amber-900">{issue.name}</p>
+                      <p className="text-amber-800">{issue.message}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {seoRules.length > 0 && !seoModule && <RuleResultsList rules={seoRules} />}
+          <ModuleIssuesList issues={seoIssues.filter((issue) => !seoModule?.issues?.some((item) => item.id === issue.id))} />
+        </Card>
+      )}
+
+      {/* Ads Audit */}
+      {(adsRules.length > 0 || adsIssues.length > 0 || modules?.ads) && (
+        <Card className="mt-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Ads Audit</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Google Merchant Center and Meta Ads tracking checks.
+              </p>
+            </div>
+            <ModuleScoreRing
+              score={professionalReport.scores?.ads ?? modules?.ads?.score}
+              label="Ads Score"
+              summary={modules?.ads?.summary}
+            />
+          </div>
+          <RuleResultsList rules={adsRules} />
+          <ModuleIssuesList issues={adsIssues} />
 
           {productsAudit && (
             <div className="mt-6 border-t border-gray-100 pt-4">
@@ -903,70 +1196,164 @@ export default function Report() {
         </Card>
       )}
 
+      {/* Technical Audit */}
+      {(technicalModule || technicalRules.length > 0 || technicalIssues.length > 0) && (
+        <Card className="mt-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Technical Audit</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Site security, performance, and technical readiness checks.
+              </p>
+            </div>
+            <ModuleScoreRing
+              score={professionalReport.scores?.technical ?? technicalModule?.score}
+              label="Technical Score"
+              summary={technicalModule?.summary}
+            />
+          </div>
+          <RuleResultsList rules={technicalRules.length > 0 ? technicalRules : technicalModule?.rules} />
+          <ModuleIssuesList issues={technicalIssues} />
+        </Card>
+      )}
+
+      {/* Trust & Policy Audit */}
+      {(trustPolicyRules.length > 0 ||
+        trustPolicyIssues.length > 0 ||
+        pages ||
+        contactInfo ||
+        pageContent) && (
+        <Card className="mt-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Trust & Policy Audit</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Business trust signals, contact information, and policy page coverage.
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <ModuleScoreRing
+                score={professionalReport.scores?.trust}
+                label="Trust Score"
+              />
+              <ModuleScoreRing
+                score={professionalReport.scores?.policy}
+                label="Policy Score"
+              />
+            </div>
+          </div>
+          <RuleResultsList rules={trustPolicyRules} />
+          <ModuleIssuesList issues={trustPolicyIssues} />
+
+          <div className="mt-6 border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-semibold text-gray-900">Key Pages</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Policy and informational pages identified from links and page content.
+            </p>
+            <ul className="mt-4 divide-y divide-gray-100">
+              {Object.entries(PAGE_LABELS).map(([key, label]) => {
+                const page = pages?.[key]
+                return (
+                  <li key={key} className="flex items-start justify-between gap-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{label}</p>
+                      {page?.url && (
+                        <p className="mt-0.5 truncate text-xs text-gray-500">{page.url}</p>
+                      )}
+                    </div>
+                    <StatusBadge found={page?.found} />
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          <div className="mt-6 border-t border-gray-100 pt-4">
+            <h3 className="text-sm font-semibold text-gray-900">Contact Information</h3>
+            <p className="mt-1 text-sm text-gray-500">Detected from homepage and key pages.</p>
+            <dl className="mt-4 space-y-4">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Email</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {contactInfo?.emails?.length > 0 ? contactInfo.emails.join(', ') : '(not found)'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {contactInfo?.phones?.length > 0 ? contactInfo.phones.join(', ') : '(not found)'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Address</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {contactInfo?.addresses?.length > 0 ? contactInfo.addresses.join('; ') : '(not found)'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {pageContent && (
+            <div className="mt-6 border-t border-gray-100 pt-4">
+              <h3 className="text-sm font-semibold text-gray-900">Page Content Analysis</h3>
+              <p className="mt-1 text-sm text-gray-500">Content extracted from discovered key pages.</p>
+              <ul className="mt-4 divide-y divide-gray-100">
+                {Object.entries(PAGE_LABELS).map(([key, label]) => {
+                  const content = pageContent?.[key]
+                  if (!content) return null
+                  return (
+                    <li key={key} className="py-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-gray-900">{label}</p>
+                        <StatusBadge found={content.fetched} />
+                      </div>
+                      {content.fetched ? (
+                        <dl className="mt-2 space-y-1 text-sm">
+                          <div className="flex gap-2">
+                            <dt className="shrink-0 text-gray-500">Title:</dt>
+                            <dd className="truncate text-gray-900">{content.title || '(empty)'}</dd>
+                          </div>
+                          <div className="flex gap-2">
+                            <dt className="shrink-0 text-gray-500">H1:</dt>
+                            <dd className="truncate text-gray-900">{content.h1 || '(empty)'}</dd>
+                          </div>
+                          <div className="flex gap-2">
+                            <dt className="shrink-0 text-gray-500">Text length:</dt>
+                            <dd className="text-gray-900">{formatNumber(content.textLength)} chars</dd>
+                          </div>
+                          {content.keywords?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {content.keywords.slice(0, 6).map(({ word, count }) => (
+                                <span
+                                  key={word}
+                                  className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                                >
+                                  {word} ({count})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </dl>
+                      ) : (
+                        <p className="mt-1 text-xs text-gray-400">
+                          {content.error || 'Page not found or could not be fetched'}
+                        </p>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Platform */}
       <Card className="mt-10">
         <h2 className="text-lg font-semibold text-gray-900">Platform Detection</h2>
         <div className="mt-4">
           <PlatformBadge platform={platform} />
         </div>
-      </Card>
-
-      {/* Key Pages */}
-      <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">Key Pages</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Policy and informational pages identified from links and page content.
-        </p>
-        <ul className="mt-4 divide-y divide-gray-100">
-          {Object.entries(PAGE_LABELS).map(([key, label]) => {
-            const page = pages?.[key]
-            return (
-              <li key={key} className="flex items-start justify-between gap-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900">{label}</p>
-                  {page?.url && (
-                    <p className="mt-0.5 truncate text-xs text-gray-500">{page.url}</p>
-                  )}
-                </div>
-                <StatusBadge found={page?.found} />
-              </li>
-            )
-          })}
-        </ul>
-      </Card>
-
-      {/* Contact Info */}
-      <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">Contact Information</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Detected from homepage and key pages.
-        </p>
-        <dl className="mt-4 space-y-4">
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Email</dt>
-            <dd className="mt-1 text-sm text-gray-900">
-              {contactInfo?.emails?.length > 0
-                ? contactInfo.emails.join(', ')
-                : '(not found)'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Phone</dt>
-            <dd className="mt-1 text-sm text-gray-900">
-              {contactInfo?.phones?.length > 0
-                ? contactInfo.phones.join(', ')
-                : '(not found)'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Address</dt>
-            <dd className="mt-1 text-sm text-gray-900">
-              {contactInfo?.addresses?.length > 0
-                ? contactInfo.addresses.join('; ')
-                : '(not found)'}
-            </dd>
-          </div>
-        </dl>
       </Card>
 
       {import.meta.env.DEV && detectionSources && (
@@ -1035,85 +1422,6 @@ export default function Report() {
           </div>
         </Card>
       )}
-
-      {/* Page Content */}
-      <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">Page Content Analysis</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Content extracted from discovered key pages.
-        </p>
-        <ul className="mt-4 divide-y divide-gray-100">
-          {Object.entries(PAGE_LABELS).map(([key, label]) => {
-            const content = pageContent?.[key]
-            if (!content) return null
-            return (
-              <li key={key} className="py-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900">{label}</p>
-                  <StatusBadge found={content.fetched} />
-                </div>
-                {content.fetched ? (
-                  <dl className="mt-2 space-y-1 text-sm">
-                    <div className="flex gap-2">
-                      <dt className="text-gray-500 shrink-0">Title:</dt>
-                      <dd className="text-gray-900 truncate">{content.title || '(empty)'}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-gray-500 shrink-0">H1:</dt>
-                      <dd className="text-gray-900 truncate">{content.h1 || '(empty)'}</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-gray-500 shrink-0">Text length:</dt>
-                      <dd className="text-gray-900">{formatNumber(content.textLength)} chars</dd>
-                    </div>
-                    {content.keywords?.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {content.keywords.slice(0, 6).map(({ word, count }) => (
-                          <span
-                            key={word}
-                            className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
-                          >
-                            {word} ({count})
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </dl>
-                ) : (
-                  <p className="mt-1 text-xs text-gray-400">
-                    {content.error || 'Page not found or could not be fetched'}
-                  </p>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      </Card>
-
-      {/* SEO */}
-      <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-900">SEO Basics</h2>
-        <dl className="mt-4 divide-y divide-gray-100">
-          <div className="flex items-center justify-between py-3">
-            <dt className="text-sm text-gray-500">robots.txt</dt>
-            <dd className="flex items-center gap-2">
-              <StatusBadge found={seo?.robotsTxt?.exists} />
-              {seo?.robotsTxt?.statusCode && (
-                <span className="text-xs text-gray-400">HTTP {seo.robotsTxt.statusCode}</span>
-              )}
-            </dd>
-          </div>
-          <div className="flex items-center justify-between py-3">
-            <dt className="text-sm text-gray-500">sitemap.xml</dt>
-            <dd className="flex items-center gap-2">
-              <StatusBadge found={seo?.sitemap?.exists} />
-              {seo?.sitemap?.statusCode && (
-                <span className="text-xs text-gray-400">HTTP {seo.sitemap.statusCode}</span>
-              )}
-            </dd>
-          </div>
-        </dl>
-      </Card>
 
       {/* Meta */}
       <Card className="mt-6">

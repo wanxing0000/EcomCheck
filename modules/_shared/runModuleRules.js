@@ -12,7 +12,7 @@ export function runModuleRules(rules, auditData) {
       id: rule.id,
       name: rule.name,
       category: rule.category,
-      severity: rule.severity,
+      severity: result.severity || rule.severity,
       description: rule.description,
       passed: result.passed,
       message: result.message || '',
@@ -20,6 +20,7 @@ export function runModuleRules(rules, auditData) {
       ...(result.policyQuality && { policyQuality: result.policyQuality }),
       ...(result.priceRisks && { priceRisks: result.priceRisks }),
       ...(result.businessInfo && { businessInfo: result.businessInfo }),
+      ...(result.purchaseFlow && { purchaseFlow: result.purchaseFlow }),
     }
   })
 }

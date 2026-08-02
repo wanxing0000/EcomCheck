@@ -1,33 +1,33 @@
-# Google Merchant Center Rules
+# GMC Rules
 
-GMC-specific compliance checks for Google Shopping listings.
+| ID | Name | Severity |
+|----|------|----------|
+| G001 | Product Price | high |
+| G002 | Product Availability | high |
+| G003 | Return Policy | high |
+| G004 | Shipping Information | medium |
+| G005 | Product Identifiers | warning |
+| G006 | Product Price Consistency | high |
+| G007 | Business Information | medium |
+| G008 | Payment Information | medium (terms-only without payment → warning) |
+| G009 | Product Purchase Flow | medium |
+| G010 | Shipping Policy Quality | medium |
 
-| ID | Name | Severity | Status |
-|----|------|----------|--------|
-| G001 | Product Price | high | ✅ Implemented |
-| G002 | Product Availability | high | ✅ Implemented |
-| G003 | Return Policy | high | ✅ Quality analysis (Phase 4.1) |
-| G004 | Shipping Information | medium | ✅ Implemented |
-| G005 | Product Identifiers | warning | ✅ Implemented |
-| G006 | Product Price Consistency | high | ✅ v2 — schema/display price & currency |
-| G007 | Business Information | medium | ✅ Implemented |
+## Data sources
 
-## Data Sources
-
-| Rule | Source |
-|------|--------|
-| G001 | `productsAudit` price signals / Product JSON-LD |
+| Rule | Primary data |
+|------|----------------|
+| G001 | `productsAudit` price signals |
 | G002 | `productsAudit` availability signals |
 | G003 | `pages.refundPolicy` + `pageContent.refundPolicy.policyQuality` |
-| G004 | `pages.shippingPolicy` |
-| G005 | Product JSON-LD fields: brand, sku, gtin, mpn |
+| G004 | `pages.shippingPolicy` existence |
+| G005 | Product JSON-LD identifiers |
 | G006 | `productsAudit.productPages[].priceConsistency` |
-| G007 | `contactInfo` (email, phone, address) |
+| G007 | `contactInfo` |
+| G008 | `pages.paymentPolicy` + `pageContent.paymentPolicy.policyQuality` |
+| G009 | `productsAudit.productPages[].signals` (addToCart / buyNow) |
+| G010 | `pageContent.shippingPolicy.policyQuality` |
 
-## API: `gmc.riskDetails`
+## Risk details (API)
 
-| Field | Source Rule |
-|-------|-------------|
-| `returnPolicy` | G003 `policyQuality` |
-| `priceConsistency` | G006 `priceRisks` |
-| `businessInformation` | G007 `businessInfo` |
+`gmc.riskDetails` exposes metadata from G003, G006, G007, G008, G009, G010.

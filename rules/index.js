@@ -13,9 +13,22 @@ import {
   productIdentifiersRule,
   productPriceConsistencyRule,
   businessInformationRule,
+  paymentInformationRule,
+  productPurchaseFlowRule,
+  shippingPolicyQualityRule,
 } from '../modules/gmc/rules/index.js'
 import { metaPixelRule, googleTagRule, productJsonLdRule } from '../modules/ads/rules/index.js'
 import { httpsRule, robotsRule, sitemapRule, metaBasicRule } from '../modules/technical/rules/index.js'
+import {
+  titleTagRule,
+  metaDescriptionRule,
+  h1StructureRule,
+  canonicalRule,
+  openGraphRule,
+  organizationSchemaRule,
+  productSchemaRule,
+  robotsSitemapRule,
+} from '../modules/seo/rules/index.js'
 
 /** Legacy trust & policy rules — will move to modules in a future phase. */
 const legacyRules = [
@@ -63,4 +76,15 @@ export {
   productIdentifiersRule,
   productPriceConsistencyRule,
   businessInformationRule,
+  paymentInformationRule,
+  productPurchaseFlowRule,
+  shippingPolicyQualityRule,
+  titleTagRule,
+  metaDescriptionRule,
+  h1StructureRule,
+  canonicalRule,
+  openGraphRule,
+  organizationSchemaRule,
+  productSchemaRule,
+  robotsSitemapRule,
 }

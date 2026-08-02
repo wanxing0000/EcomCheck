@@ -3,12 +3,13 @@ import { Link, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
 
-const CATEGORY_ORDER = ['trust', 'policy', 'technical', 'ads', 'gmc']
+const CATEGORY_ORDER = ['trust', 'policy', 'technical', 'seo', 'ads', 'gmc']
 
 const CATEGORY_LABELS = {
   trust: 'Trust',
   policy: 'Policy',
   technical: 'Technical',
+  seo: 'SEO',
   ads: 'Ads',
   gmc: 'GMC',
 }
@@ -171,8 +172,9 @@ export default function PublicReport() {
   const scores = auditData.report?.scores || {
     overall: record.score ?? auditData.score,
     gmc: record.gmcScore ?? auditData.gmc?.score,
-    ads: null,
-    technical: null,
+    ads: auditData.modules?.ads?.score ?? null,
+    technical: auditData.modules?.technical?.score ?? null,
+    seo: auditData.modules?.seo?.score ?? null,
   }
   const issues = buildIssues(auditData)
   const issuesByCategory = groupIssuesByCategory(issues, auditData.report?.issuesByCategory)
@@ -214,11 +216,12 @@ export default function PublicReport() {
 
       <Card className="mt-6">
         <h2 className="text-lg font-semibold text-gray-900">Compliance Scores</h2>
-        <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
           <ScoreRing label="Overall" value={scores.overall} />
           <ScoreRing label="GMC" value={scores.gmc} />
           <ScoreRing label="Ads" value={scores.ads} />
           <ScoreRing label="Technical" value={scores.technical} />
+          <ScoreRing label="SEO" value={scores.seo} />
         </div>
       </Card>
 

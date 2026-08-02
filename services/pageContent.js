@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio'
+import { extractJsonLdBlocks, collectOrganizations } from './structuredData.js'
 
 const STOP_WORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
@@ -70,6 +71,62 @@ const CONDITION_KEYWORDS = [
   /\bdefective\b/i,
   /\bdamaged\b/i,
 ]
+
+const SHIPPING_KEYWORDS = /\b(shipping|delivery|dispatch|fulfillment|ship(?:ping)?\s+policy)\b/i
+const DELIVERY_TIME_PATTERNS = [
+  /\b\d{1,3}\s*(?:business\s*)?days?\b/i,
+  /\b\d{1,2}\s*weeks?\b/i,
+  /\b(?:within|up to)\s+\d{1,3}\s*days?\b/i,
+  /\bestimated delivery\b/i,
+  /\bprocessing time\b/i,
+]
+const SHIPPING_REGION_PATTERNS = [
+  /\b(?:worldwide|international|domestic|nationwide)\b/i,
+  /\b(?:united states|u\.?s\.?a?\.?|united kingdom|u\.?k\.?|europe|canada|australia)\b/i,
+  /\b(?:ships to|deliver(?:y)? to|available in)\b/i,
+]
+const SHIPPING_COST_PATTERNS = [
+  /\bfree shipping\b/i,
+  /\bshipping (?:cost|fee|rate|charge)s?\b/i,
+  /\bflat rate\b/i,
+  /\bcalculated at checkout\b/i,
+  /\bshipping (?:is|starts at)\s+\$/i,
+]
+
+const PAYMENT_KEYWORDS = /\b(payment|pay(?:ment)?s?|billing|checkout|purchase|order)\b/i
+const PAYMENT_METHOD_PATTERNS = [
+  /\bcredit card\b/i,
+  /\bdebit card\b/i,
+  /\bpaypal\b/i,
+  /\bstripe\b/i,
+  /\bapple pay\b/i,
+  /\bgoogle pay\b/i,
+  /\bbank transfer\b/i,
+  /\bvisa\b/i,
+  /\bmastercard\b/i,
+  /\bamerican express\b/i,
+  /\bamex\b/i,
+  /\bklarna\b/i,
+  /\bshop pay\b/i,
+]
+const PAYMENT_CURRENCY_PATTERNS = [
+  /\b(?:usd|eur|gbp|cad|aud)\b/i,
+  /\bcurrency\b/i,
+  /\b(?:all prices|prices are) (?:in|shown in)\b/i,
+]
+
+function buildPolicyQualityResult({ textLength, checks, missingLabels, riskMessages }) {
+  const passedChecks = Object.values(checks).filter(Boolean).length
+  const qualityScore = Math.round((passedChecks / Object.keys(checks).length) * 100)
+
+  return {
+    textLength,
+    checks,
+    qualityScore,
+    missing: missingLabels,
+    risks: riskMessages,
+  }
+}
 
 function extractBodyText($) {
   $('script, style, noscript, iframe, svg, nav, header, footer').remove()
@@ -159,36 +216,6 @@ function formatSchemaAddress(address) {
     address.addressCountry,
   ].filter(Boolean)
   return parts.length >= 2 ? parts.join(', ') : null
-}
-
-function extractJsonLdBlocks(html) {
-  const blocks = []
-  const regex = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-  let match
-  while ((match = regex.exec(html)) !== null) {
-    try {
-      blocks.push(JSON.parse(match[1]))
-    } catch {
-      // skip invalid JSON-LD
-    }
-  }
-  return blocks
-}
-
-function isOrganizationType(typeValue) {
-  if (!typeValue) return false
-  const types = Array.isArray(typeValue) ? typeValue : [typeValue]
-  return types.some((t) => /Organization|LocalBusiness|Store|OnlineStore/i.test(String(t)))
-}
-
-function collectOrganizations(node, organizations) {
-  if (!node || typeof node !== 'object') return
-  if (Array.isArray(node)) {
-    node.forEach((item) => collectOrganizations(item, organizations))
-    return
-  }
-  if (isOrganizationType(node['@type'])) organizations.push(node)
-  if (node['@graph']) collectOrganizations(node['@graph'], organizations)
 }
 
 function extractOrganizationContact(html, page, sources, seen) {
@@ -399,6 +426,96 @@ export function analyzeReturnPolicyQuality(text, pageContact = {}) {
     qualityScore,
     missing,
     risks,
+  }
+}
+
+/**
+ * Analyze shipping policy page quality for GMC compliance.
+ * @param {string} text
+ */
+export function analyzeShippingPolicyQuality(text) {
+  const textLength = text.length
+  const shippingKeywords = SHIPPING_KEYWORDS.test(text)
+
+  const deliveryTime = DELIVERY_TIME_PATTERNS.some((pattern) => pattern.test(text))
+  const shippingRegions = SHIPPING_REGION_PATTERNS.some((pattern) => pattern.test(text))
+  const shippingCost = SHIPPING_COST_PATTERNS.some((pattern) => pattern.test(text))
+
+  const checks = {
+    sufficientLength: textLength >= 80,
+    shippingKeywords,
+    deliveryTime,
+    shippingRegions,
+    shippingCost,
+  }
+
+  const missing = []
+  if (!checks.sufficientLength) missing.push('sufficient content length')
+  if (!checks.shippingKeywords) missing.push('shipping keywords')
+  if (!checks.deliveryTime) missing.push('delivery timeframes')
+  if (!checks.shippingRegions) missing.push('shipping regions')
+  if (!checks.shippingCost) missing.push('shipping costs')
+
+  const risks = []
+  if (!checks.shippingKeywords) risks.push('Policy text lacks clear shipping or delivery language.')
+  if (!checks.deliveryTime) risks.push('No delivery timeframes detected.')
+  if (!checks.shippingRegions) risks.push('Shipping regions or delivery areas not specified.')
+  if (!checks.shippingCost) risks.push('Shipping costs or free shipping terms not found.')
+
+  return buildPolicyQualityResult({
+    textLength,
+    checks,
+    missingLabels: missing,
+    riskMessages: risks,
+  })
+}
+
+/**
+ * Analyze payment / terms page quality for GMC compliance.
+ * @param {string} text
+ * @param {{ pageSource?: string }} [options]
+ */
+export function analyzePaymentPolicyQuality(text, options = {}) {
+  const textLength = text.length
+  const paymentKeywords = PAYMENT_KEYWORDS.test(text)
+  const paymentMethods = PAYMENT_METHOD_PATTERNS.some((pattern) => pattern.test(text))
+  const currencyOrPricing = PAYMENT_CURRENCY_PATTERNS.some((pattern) => pattern.test(text))
+  const hasPaymentSignals = paymentKeywords && (paymentMethods || currencyOrPricing)
+
+  const checks = {
+    sufficientLength: textLength >= 80,
+    paymentKeywords,
+    paymentMethods,
+    currencyOrPricing,
+    hasPaymentSignals,
+  }
+
+  const missing = []
+  if (!checks.sufficientLength) missing.push('sufficient content length')
+  if (!checks.paymentKeywords) missing.push('payment keywords')
+  if (!checks.paymentMethods) missing.push('payment methods')
+  if (!checks.currencyOrPricing) missing.push('currency or pricing terms')
+  if (!checks.hasPaymentSignals) missing.push('actionable payment information')
+
+  const risks = []
+  if (!checks.paymentKeywords) {
+    risks.push('Page lacks clear payment or billing language.')
+  }
+  if (!checks.paymentMethods) {
+    risks.push('Accepted payment methods (card, PayPal, etc.) not detected.')
+  }
+  if (options.pageSource === 'terms-of-service' && !checks.hasPaymentSignals) {
+    risks.push('Terms of Service page found but no actionable payment information detected.')
+  }
+
+  return {
+    ...buildPolicyQualityResult({
+      textLength,
+      checks,
+      missingLabels: missing,
+      riskMessages: risks,
+    }),
+    pageSource: options.pageSource || 'dedicated',
   }
 }
 

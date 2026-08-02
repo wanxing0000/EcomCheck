@@ -1,7 +1,8 @@
-import { extractContactInfo, mergeContactInfo, parsePageContent, analyzeReturnPolicyQuality, getBodyTextFromHtml } from './pageContent.js'
+import { extractContactInfo, mergeContactInfo, parsePageContent, analyzeReturnPolicyQuality, analyzeShippingPolicyQuality, analyzePaymentPolicyQuality, getBodyTextFromHtml } from './pageContent.js'
 import { detectAdsData } from './adsDetect.js'
 import { scanProductPages } from './productCrawler.js'
 import { buildDetectionSources } from './detectionSources.js'
+import { extractHomepageSeo, buildStructuredDataSummary, parseRobotsBlocksAll, MAX_ROBOTS_BODY_CHARS } from './seoData.js'
 import * as cheerio from 'cheerio'
 
 export const CrawlerErrorCode = {
@@ -29,6 +30,7 @@ const PAGE_TYPES = [
   'privacyPolicy',
   'refundPolicy',
   'shippingPolicy',
+  'paymentPolicy',
 ]
 
 const PAGE_PATTERNS = {
@@ -97,6 +99,24 @@ const PAGE_PATTERNS = {
       /shipping\s*(?:&|and)\s*returns/i,
       /shipping\s*policy/i,
       /delivery\s*policy/i,
+    ],
+  },
+  paymentPolicy: {
+    url: [
+      /\/payment[_-]policy(?:\/|$|\?)/i,
+      /\/payment[_-]information(?:\/|$|\?)/i,
+      /\/terms[_-]of[_-](?:sale|service)(?:\/|$|\?)/i,
+      /\/pages\/payment(?:-[a-z-]+)?(?:\/|$|\?)/i,
+      /\/policies\/payment(?:-policy)?(?:\/|$|\?)/i,
+      /\/billing(?:-policy|-information)?(?:\/|$|\?)/i,
+      /\/checkout[_-]policy(?:\/|$|\?)/i,
+    ],
+    text: [
+      /payment\s*policy/i,
+      /payment\s*information/i,
+      /terms\s*of\s*sale/i,
+      /accepted\s*payment/i,
+      /we\s*accept/i,
     ],
   },
 }
@@ -311,7 +331,7 @@ function scorePageMatch(pageType, link) {
 }
 
 function collectPolicyCandidates(links) {
-  const policyTypes = ['privacyPolicy', 'refundPolicy', 'shippingPolicy']
+  const policyTypes = ['privacyPolicy', 'refundPolicy', 'shippingPolicy', 'paymentPolicy']
   const candidates = []
 
   for (const link of links) {
@@ -355,6 +375,12 @@ function classifyPages(links) {
       confidence: bestScore >= 5 ? 'high' : bestScore >= 3 ? 'medium' : bestScore > 0 ? 'low' : 'none',
       matchedKeyword: bestKeyword,
     }
+
+    if (pageType === 'paymentPolicy' && pages[pageType].found && pages[pageType].url) {
+      pages[pageType].policySource = /terms-of-service|terms-of-sale/i.test(pages[pageType].url)
+        ? 'terms-of-service'
+        : 'dedicated'
+    }
   }
 
   return pages
@@ -364,7 +390,10 @@ const SHOPIFY_POLICY_PATHS = {
   privacyPolicy: '/policies/privacy-policy',
   refundPolicy: '/policies/refund-policy',
   shippingPolicy: '/policies/shipping-policy',
+  paymentPolicy: '/policies/payment-policy',
 }
+
+const SHOPIFY_PAYMENT_FALLBACK_PATH = '/policies/terms-of-service'
 
 const WOOCOMMERCE_POLICY_PATHS = {
   refundPolicy: [
@@ -382,6 +411,12 @@ const WOOCOMMERCE_POLICY_PATHS = {
     '/delivery-policy/',
   ],
   privacyPolicy: ['/privacy-policy/', '/privacy_policy/', '/privacy/'],
+  paymentPolicy: [
+    '/payment-policy/',
+    '/payment-information/',
+    '/terms-of-sale/',
+    '/billing-policy/',
+  ],
 }
 
 async function enrichShopifyPages(pages, origin, timeout) {
@@ -395,6 +430,21 @@ async function enrichShopifyPages(pages, origin, timeout) {
         found: true,
         url: result.url || policyUrl,
         confidence: 'high',
+        policySource: pageType === 'paymentPolicy' ? 'dedicated' : undefined,
+      }
+    }
+  }
+
+  if (!pages.paymentPolicy?.found) {
+    const fallbackUrl = `${origin}${SHOPIFY_PAYMENT_FALLBACK_PATH}`
+    const result = await fetchResource(fallbackUrl, timeout)
+    if (result.ok) {
+      pages.paymentPolicy = {
+        found: true,
+        url: result.url || fallbackUrl,
+        confidence: 'medium',
+        policySource: 'terms-of-service',
+        matchedKeyword: 'shopify-terms-fallback',
       }
     }
   }
@@ -506,6 +556,9 @@ async function checkSeoFiles(origin, timeout) {
   }
 
   let sitemapFromRobots = null
+  let robotsBody = null
+  let blocksAll = false
+
   if (robotsResult.ok) {
     try {
       const controller = new AbortController()
@@ -516,8 +569,10 @@ async function checkSeoFiles(origin, timeout) {
       })
       clearTimeout(timer)
       if (res.ok) {
-        const text = await res.text()
-        const sitemapMatch = text.match(/^Sitemap:\s*(.+)$/im)
+        robotsBody = await res.text()
+        blocksAll = parseRobotsBlocksAll(robotsBody)
+
+        const sitemapMatch = robotsBody.match(/^Sitemap:\s*(.+)$/im)
         if (sitemapMatch) {
           sitemapFromRobots = sitemapMatch[1].trim()
           const robotsSitemapCheck = await fetchResource(sitemapFromRobots, timeout)
@@ -536,6 +591,8 @@ async function checkSeoFiles(origin, timeout) {
       exists: robotsResult.ok,
       url: robotsUrl,
       statusCode: robotsResult.status || null,
+      body: robotsBody ? robotsBody.slice(0, MAX_ROBOTS_BODY_CHARS) : null,
+      blocksAll,
     },
     sitemap: {
       exists: sitemapResult?.ok || false,
@@ -670,6 +727,18 @@ async function fetchKeyPageContents(pages, homepageHtml) {
       pageContent[pageType].policyQuality = analyzeReturnPolicyQuality(bodyText, pageContact)
     }
 
+    if (pageType === 'shippingPolicy') {
+      const bodyText = getBodyTextFromHtml(html)
+      pageContent[pageType].policyQuality = analyzeShippingPolicyQuality(bodyText)
+    }
+
+    if (pageType === 'paymentPolicy') {
+      const bodyText = getBodyTextFromHtml(html)
+      const pageSource = page?.policySource || 'dedicated'
+      pageContent[pageType].policyQuality = analyzePaymentPolicyQuality(bodyText, { pageSource })
+      pageContent[pageType].policySource = pageSource
+    }
+
     contactSources.push(extractContactInfo(html, { page: pageType }))
   })
 
@@ -707,7 +776,7 @@ export async function crawl(url, options = {}) {
         ? enrichWooCommercePages(pages, origin, Math.min(timeout, 8_000))
         : Promise.resolve(pages)
 
-  const [enrichedPages, seo] = await Promise.all([
+  const [enrichedPages, seoFiles] = await Promise.all([
     platformEnrich,
     checkSeoFiles(origin, Math.min(timeout, 10_000)),
   ])
@@ -722,6 +791,12 @@ export async function crawl(url, options = {}) {
   })
 
   const ads = detectAdsData(html, productScan)
+
+  const seo = {
+    ...seoFiles,
+    homepage: extractHomepageSeo(html, meta),
+    structuredData: buildStructuredDataSummary(html, productScan.audit),
+  }
 
   const auditPayload = {
     url: finalUrl,

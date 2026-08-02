@@ -1,5 +1,5 @@
 /**
- * @typedef {'trust' | 'policy' | 'technical' | 'ads' | 'gmc'} RuleCategory
+ * @typedef {'trust' | 'policy' | 'technical' | 'ads' | 'gmc' | 'seo'} RuleCategory
  */
 
 /**

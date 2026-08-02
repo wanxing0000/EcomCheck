@@ -5,6 +5,9 @@ import { shippingInfoRule } from './G004-shipping-info.js'
 import { productIdentifiersRule } from './G005-product-identifiers.js'
 import { productPriceConsistencyRule } from './G006-price-consistency.js'
 import { businessInformationRule } from './G007-business-information.js'
+import { paymentInformationRule } from './G008-payment-information.js'
+import { productPurchaseFlowRule } from './G009-product-purchase-flow.js'
+import { shippingPolicyQualityRule } from './G010-shipping-policy-quality.js'
 
 /** @type {import('../../_shared/types.js').Rule[]} */
 export const rules = [
@@ -15,6 +18,9 @@ export const rules = [
   productIdentifiersRule,
   productPriceConsistencyRule,
   businessInformationRule,
+  paymentInformationRule,
+  productPurchaseFlowRule,
+  shippingPolicyQualityRule,
 ]
 
 export {
@@ -25,4 +31,7 @@ export {
   productIdentifiersRule,
   productPriceConsistencyRule,
   businessInformationRule,
+  paymentInformationRule,
+  productPurchaseFlowRule,
+  shippingPolicyQualityRule,
 }
