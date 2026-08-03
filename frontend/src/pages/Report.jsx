@@ -546,7 +546,12 @@ export default function Report() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-      <ReportSaveCta reportId={crawlResult.reportId} placement="top" />
+      <ReportSaveCta
+        reportId={crawlResult.reportId}
+        url={url}
+        crawlResult={crawlResult}
+        placement="top"
+      />
 
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>

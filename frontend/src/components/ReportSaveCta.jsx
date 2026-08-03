@@ -1,12 +1,14 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Button from './Button'
 import Card from './Card'
 import { useAuth } from '../context/AuthContext'
+import { storePendingGuestReport } from '../utils/guestAuditSession.js'
 
 /**
  * Guest conversion CTA or logged-in save confirmation on the report page.
  */
-export default function ReportSaveCta({ reportId, placement = 'top' }) {
+export default function ReportSaveCta({ reportId, url, crawlResult, placement = 'top' }) {
+  const navigate = useNavigate()
   const { user, loading } = useAuth()
 
   if (loading) return null
@@ -34,6 +36,28 @@ export default function ReportSaveCta({ reportId, placement = 'top' }) {
 
   if (user) return null
 
+  function goToRegister() {
+    storePendingGuestReport({ url, crawlResult })
+    navigate('/register', {
+      state: {
+        fromReport: true,
+        reportId: reportId || null,
+        url: url || crawlResult?.url || null,
+      },
+    })
+  }
+
+  function goToLogin() {
+    storePendingGuestReport({ url, crawlResult })
+    navigate('/login', {
+      state: {
+        from: '/dashboard',
+        fromReport: true,
+        reportId: reportId || null,
+      },
+    })
+  }
+
   return (
     <Card
       className={[
@@ -43,18 +67,22 @@ export default function ReportSaveCta({ reportId, placement = 'top' }) {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Save your audit report</h2>
+          <h2 className="text-base font-semibold text-gray-900">
+            Save your audit report and track future improvements
+          </h2>
           <p className="mt-1 text-sm text-gray-600">
-            Create a free account to keep this report, track scores over time, and revisit fixes anytime.
+            Create a free account to keep this report in your dashboard and compare scores over time.
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-          <Link to="/register">
-            <Button>Create free account</Button>
-          </Link>
-          <Link to="/login" className="text-center text-sm font-medium text-brand-600 hover:text-brand-700">
+          <Button onClick={goToRegister}>Create Free Account</Button>
+          <button
+            type="button"
+            onClick={goToLogin}
+            className="text-center text-sm font-medium text-brand-600 hover:text-brand-700"
+          >
             Already have an account? Log in
-          </Link>
+          </button>
         </div>
       </div>
     </Card>

@@ -4,6 +4,7 @@ import Button from '../components/Button'
 import Card from '../components/Card'
 import { useAuth } from '../context/AuthContext'
 import { trackLogin } from '../lib/analytics.js'
+import { claimPendingGuestReport } from '../utils/guestAuditSession.js'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -22,8 +23,21 @@ export default function Login() {
     setSubmitting(true)
 
     try {
-      await signIn(email.trim(), password)
+      const { session } = await signIn(email.trim(), password)
       trackLogin()
+
+      if (session?.access_token) {
+        try {
+          const saved = await claimPendingGuestReport(session.access_token)
+          if (saved?.id) {
+            navigate(`/report/${saved.id}`, { replace: true })
+            return
+          }
+        } catch (err) {
+          console.error('Failed to save guest report after login:', err)
+        }
+      }
+
       navigate(redirectTo, { replace: true })
     } catch (err) {
       setError(err.message || 'Login failed')

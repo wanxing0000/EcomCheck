@@ -1,18 +1,36 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import { useAuth } from '../context/AuthContext'
 import { trackRegister } from '../lib/analytics.js'
+import { claimPendingGuestReport } from '../utils/guestAuditSession.js'
 
 export default function Register() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { signUp, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const fromReport = location.state?.fromReport === true
+
+  async function finishAuthRedirect(accessToken) {
+    try {
+      const saved = await claimPendingGuestReport(accessToken)
+      if (saved?.id) {
+        navigate(`/report/${saved.id}`, { replace: true })
+        return
+      }
+    } catch (err) {
+      console.error('Failed to save guest report after registration:', err)
+    }
+
+    navigate('/dashboard', { replace: true })
+  }
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -23,11 +41,17 @@ export default function Register() {
     try {
       const { session } = await signUp(email.trim(), password)
       trackRegister()
+
       if (session) {
-        navigate('/dashboard', { replace: true })
+        await finishAuthRedirect(session.access_token)
         return
       }
-      setMessage('Account created. Check your email to confirm, then log in.')
+
+      if (fromReport) {
+        setMessage('Account created. Confirm your email, then log in to save your report to your dashboard.')
+      } else {
+        setMessage('Account created. Check your email to confirm, then log in.')
+      }
     } catch (err) {
       setError(err.message || 'Registration failed')
     } finally {
@@ -39,7 +63,11 @@ export default function Register() {
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">Create account</h1>
-        <p className="mt-2 text-sm text-gray-600">Save audit history and revisit reports anytime.</p>
+        <p className="mt-2 text-sm text-gray-600">
+          {fromReport
+            ? 'Register to save your audit report to your dashboard.'
+            : 'Save audit history and revisit reports anytime.'}
+        </p>
       </div>
 
       {!isConfigured && (
@@ -95,7 +123,11 @@ export default function Register() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-brand-600 hover:text-brand-700">
+          <Link
+            to="/login"
+            state={location.state}
+            className="font-medium text-brand-600 hover:text-brand-700"
+          >
             Log in
           </Link>
         </p>

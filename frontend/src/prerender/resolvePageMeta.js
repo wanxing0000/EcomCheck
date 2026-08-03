@@ -7,6 +7,7 @@ import {
   formatSeoTitle,
   getGuideBreadcrumbs,
   getLandingBreadcrumbs,
+  getSiteBaseUrl,
 } from '../data/seoPages.js'
 import {
   buildArticleSchema,
@@ -150,7 +151,7 @@ export function buildPageMeta(path) {
 export function buildHeadInjection(meta) {
   if (!meta) return ''
 
-  const origin = SEO_SITE.baseUrl
+  const origin = getSiteBaseUrl()
   const canonicalUrl = `${origin}${meta.canonicalPath}`
   const ogImage = `${origin}${SEO_SITE.ogImagePath || '/favicon.svg'}`
 

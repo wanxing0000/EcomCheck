@@ -5,4 +5,4 @@ Allow: /
 Disallow: /scan
 Disallow: /report
 
-Sitemap: https://ecomcheck.com/sitemap.xml
+Sitemap: https://auditpilot.cc/sitemap.xml

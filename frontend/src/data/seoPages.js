@@ -2,7 +2,7 @@
 
 export const SEO_SITE = {
   name: 'EcomCheck',
-  baseUrl: 'https://ecomcheck.com',
+  baseUrl: 'https://auditpilot.cc',
   defaultTitle: 'EcomCheck — Free Ecommerce Audit Tools',
   defaultDescription:
     'Free ecommerce audit tools for Google Merchant Center compliance and SEO health. Scan your store in minutes.',
