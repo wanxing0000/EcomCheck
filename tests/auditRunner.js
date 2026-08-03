@@ -3,8 +3,16 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const API_BASE = (process.env.ECOMCHECK_API_URL || 'http://localhost:3000').replace(/\/$/, '')
-const AUDIT_TIMEOUT_MS = Number(process.env.ECOMCHECK_AUDIT_TIMEOUT_MS || 180_000)
+const API_BASE = (
+  process.env.AUDITPILOT_API_URL ||
+  process.env.ECOMCHECK_API_URL ||
+  'http://localhost:3000'
+).replace(/\/$/, '')
+const AUDIT_TIMEOUT_MS = Number(
+  process.env.AUDITPILOT_AUDIT_TIMEOUT_MS ||
+    process.env.ECOMCHECK_AUDIT_TIMEOUT_MS ||
+    180_000
+)
 
 const sites = JSON.parse(readFileSync(join(__dirname, 'sites.json'), 'utf8'))
 
@@ -193,7 +201,7 @@ function printSiteResult(site, result, error) {
 async function main() {
   console.log('================================')
   console.log('')
-  console.log('EcomCheck Regression Test')
+  console.log('AuditPilot Regression Test')
   console.log('')
 
   let passed = 0

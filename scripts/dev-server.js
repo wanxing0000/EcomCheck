@@ -65,7 +65,7 @@ const server = createServer(async (req, res) => {
 })
 
 server.listen(PORT, () => {
-  console.log(`EcomCheck API running at http://localhost:${PORT}`)
+  console.log(`AuditPilot API running at http://localhost:${PORT}`)
   console.log(`  GET  /api/health`)
   console.log(`  POST /api/audit`)
   console.log(`  GET  /api/usage`)

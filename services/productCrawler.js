@@ -6,7 +6,7 @@ import {
 
 const MAX_PRODUCT_PAGES = 5
 const DEFAULT_PAGE_TIMEOUT_MS = 10_000
-const USER_AGENT = 'EcomCheck/0.3 (Website Audit Bot)'
+const USER_AGENT = 'AuditPilot/0.3 (Website Audit Bot)'
 
 async function fetchPageHtml(url, timeout) {
   const controller = new AbortController()

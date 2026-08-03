@@ -251,7 +251,7 @@ export default function Home() {
               Stop guessing. Start fixing.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-gray-600">
-              EcomCheck turns a manual checklist into an actionable audit your whole team can use.
+              AuditPilot turns a manual checklist into an actionable audit your whole team can use.
             </p>
           </div>
 

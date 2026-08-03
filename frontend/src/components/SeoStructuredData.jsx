@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 
-const SCRIPT_ATTR = 'data-ecomcheck-schema'
+const SCRIPT_ATTR = 'data-auditpilot-schema'
 
 /**
  * Inject JSON-LD structured data into document head.

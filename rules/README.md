@@ -1,4 +1,4 @@
-# EcomCheck Rules (Legacy Registry)
+# AuditPilot Rules (Legacy Registry)
 
 The audit engine registry lives here. **GMC, Ads, and Technical rules have moved to `modules/`.**
 

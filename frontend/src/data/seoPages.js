@@ -1,12 +1,12 @@
 /** SEO page registry — data-driven landing, guide, and blog metadata (display layer only). */
 
 export const SEO_SITE = {
-  name: 'EcomCheck',
+  name: 'AuditPilot',
   baseUrl: 'https://auditpilot.cc',
-  defaultTitle: 'EcomCheck — Free Ecommerce Audit Tools',
+  defaultTitle: 'AuditPilot — Free Ecommerce Audit Tools',
   defaultDescription:
     'Free ecommerce audit tools for Google Merchant Center compliance and SEO health. Scan your store in minutes.',
-  titleSuffix: ' | EcomCheck',
+  titleSuffix: ' | AuditPilot',
   locale: 'en_US',
   ogImagePath: '/favicon.svg',
 }
@@ -212,7 +212,7 @@ export const SEO_LANDING_PAGES = {
       items: [
         {
           q: 'Does this work with any Shopify theme?',
-          a: 'Yes. EcomCheck scans your public storefront URL regardless of theme or apps installed.',
+          a: 'Yes. AuditPilot scans your public storefront URL regardless of theme or apps installed.',
         },
         {
           q: 'How many free scans do I get?',
@@ -248,7 +248,7 @@ export const SEO_LANDING_PAGES = {
         },
         {
           title: 'We scan policy and product pages',
-          body: 'EcomCheck checks GMC rules G001–G010 plus bundled ads, technical, and trust signals.',
+          body: 'AuditPilot checks GMC rules G001–G010 plus bundled ads, technical, and trust signals.',
         },
         {
           title: 'Review readiness score and fix list',
@@ -313,7 +313,7 @@ export const SEO_LANDING_PAGES = {
       items: [
         {
           q: 'Do I need a WordPress login?',
-          a: 'No. EcomCheck only needs your public store URL — the same pages Google crawls.',
+          a: 'No. AuditPilot only needs your public store URL — the same pages Google crawls.',
         },
         {
           q: 'Is WooCommerce multistore supported?',
@@ -331,7 +331,7 @@ export const SEO_LANDING_PAGES = {
         'WooCommerce sites frequently fail GMC review when policy pages exist in WordPress but are missing from the storefront menu, or when caching plugins serve stale schema to Googlebot.',
       paragraphs: [
         'The audit requests your public shop URL — the same pages linked from Google product listings. Variable products, sale badges, and tax display settings often cause schema vs display price drift.',
-        'Plugin stacks (page builders, SEO plugins, feed managers) can duplicate or strip JSON-LD. EcomCheck flags missing product data and unreachable policies without requiring wp-admin access.',
+        'Plugin stacks (page builders, SEO plugins, feed managers) can duplicate or strip JSON-LD. AuditPilot flags missing product data and unreachable policies without requiring wp-admin access.',
       ],
       checklist: [
         'Refund and shipping pages assigned in footer widget or menu',
@@ -603,7 +603,7 @@ export const SEO_GUIDE_PAGES = {
     pageType: 'guide',
     title: 'Google Merchant Center Requirements Checklist for Ecommerce',
     description:
-      'A practical checklist of Google Merchant Center store requirements — policies, product data, trust signals, and how EcomCheck maps each rule.',
+      'A practical checklist of Google Merchant Center store requirements — policies, product data, trust signals, and how AuditPilot maps each rule.',
     metaDescription:
       'A practical checklist of Google Merchant Center store requirements — policies, product data, and trust signals.',
     keywords: [
@@ -626,7 +626,7 @@ export const SEO_GUIDE_PAGES = {
     contentBlocks: [
       {
         type: 'paragraph',
-        text: 'Before Google approves your feed, your storefront must meet baseline ecommerce policy and product data expectations. This checklist maps the signals EcomCheck evaluates in GMC Compliance Audit mode.',
+        text: 'Before Google approves your feed, your storefront must meet baseline ecommerce policy and product data expectations. This checklist maps the signals AuditPilot evaluates in GMC Compliance Audit mode.',
       },
       {
         type: 'heading',
@@ -681,7 +681,7 @@ export const SEO_GUIDE_PAGES = {
       {
         type: 'callout',
         title: 'Map requirements to audit rules',
-        text: 'EcomCheck GMC mode evaluates G001–G010 readiness rules plus bundled trust, policy, technical, and ads signals in one scan.',
+        text: 'AuditPilot GMC mode evaluates G001–G010 readiness rules plus bundled trust, policy, technical, and ads signals in one scan.',
       },
       {
         type: 'heading',
@@ -705,7 +705,7 @@ export const SEO_GUIDE_PAGES = {
           a: 'Platforms provide templates, but you must publish, link, and maintain policies on your live domain. Platform defaults alone are not enough.',
         },
         {
-          q: 'How does EcomCheck map to Google requirements?',
+          q: 'How does AuditPilot map to Google requirements?',
           a: 'Our GMC audit checks crawlable policy pages, product schema, pricing consistency, and purchase flow signals aligned with common Merchant Center disapproval causes.',
         },
       ],
@@ -730,12 +730,12 @@ export const SEO_BLOG_INDEX = {
   slug: 'blog',
   path: '/blog',
   pageType: 'blog-index',
-  title: 'EcomCheck Blog — Ecommerce Audit Insights',
+  title: 'AuditPilot Blog — Ecommerce Audit Insights',
   description:
     'Guides and updates on Google Merchant Center compliance, SEO health, and ecommerce audit best practices.',
   metaDescription:
     'Guides and updates on Google Merchant Center compliance, SEO health, and ecommerce audit best practices.',
-  h1: 'EcomCheck Blog',
+  h1: 'AuditPilot Blog',
   intro:
     'Articles on GMC compliance, SEO growth, and storefront audit best practices. New posts coming soon.',
 }

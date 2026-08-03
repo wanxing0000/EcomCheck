@@ -115,6 +115,7 @@ export async function handleAudit(req, res) {
   const auditOptions = {
     modules: auditPlan.modules,
     legacyEnabled: auditPlan.legacyEnabled,
+    auditMode: auditPlan.mode,
   }
   const reportAuditContext = buildReportAuditContext(auditPlan)
   const auditMetadata = buildAuditMetadata(auditPlan)

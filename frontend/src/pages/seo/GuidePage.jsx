@@ -40,7 +40,7 @@ export default function GuidePage() {
           path: page.path,
         }),
         buildSoftwareApplicationSchema({
-          name: SEO_AUDIT_TOOL_PAGES[auditMode]?.name || 'EcomCheck Audit',
+          name: SEO_AUDIT_TOOL_PAGES[auditMode]?.name || 'AuditPilot Audit',
           description: page.description,
           path: auditPath,
         }),

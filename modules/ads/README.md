@@ -6,7 +6,7 @@ Advertising and conversion tracking readiness.
 
 | ID | Name | Severity |
 |----|------|----------|
-| A001 | Meta Pixel Detection | medium |
+| A001 | Meta Pixel Detection | medium | Meta Ads Audit only (excluded from GMC bundle) |
 | A002 | Google Tag Detection | medium |
 | A003 | Product JSON-LD Detection | high |
 

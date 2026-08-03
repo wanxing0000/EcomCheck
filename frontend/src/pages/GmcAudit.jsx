@@ -236,7 +236,7 @@ export default function GmcAudit() {
           <Card className="mt-10 border-emerald-100 bg-gradient-to-r from-emerald-50/80 to-white">
             <p className="text-sm leading-relaxed text-gray-700">
               Google Merchant Center rejects stores for policy gaps, mismatched product data, and missing
-              business information — often before you spend a dollar on ads. EcomCheck surfaces those risks
+              business information — often before you spend a dollar on ads. AuditPilot surfaces those risks
               in plain language so you can fix blockers before review or suspension.
             </p>
           </Card>

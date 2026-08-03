@@ -51,7 +51,7 @@ export const allRules = [...legacyRules, ...getAllModuleRules()]
 export function runRules(auditData, options = {}) {
   const legacyEnabled = options.legacyEnabled !== false
   const legacyResults = legacyEnabled ? runModuleRules(legacyRules, auditData) : []
-  const moduleResults = runModuleRules(getModuleRulesForExecution(options.modules), auditData)
+  const moduleResults = runModuleRules(getModuleRulesForExecution(options.modules, options), auditData)
   return [...legacyResults, ...moduleResults]
 }
 

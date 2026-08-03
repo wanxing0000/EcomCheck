@@ -31,7 +31,7 @@ export default function Navbar() {
               />
             </svg>
           </div>
-          <span className="text-lg font-semibold tracking-tight text-gray-900">EcomCheck</span>
+          <span className="text-lg font-semibold tracking-tight text-gray-900">AuditPilot</span>
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">

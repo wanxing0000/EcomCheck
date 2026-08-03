@@ -1,4 +1,4 @@
--- EcomCheck audit_reports — run in Supabase SQL editor
+-- AuditPilot audit_reports — run in Supabase SQL editor
 -- `data` stores the full audit payload (report_json)
 
 create table if not exists public.audit_reports (

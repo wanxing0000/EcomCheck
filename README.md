@@ -1,8 +1,8 @@
-# EcomCheck
+# AuditPilot
 
 **Website compliance and advertising readiness audit tool**
 
-EcomCheck helps e-commerce store owners evaluate whether their website is ready for paid advertising on **Google Merchant Center** and **Meta Ads** (Facebook/Instagram). Enter your store URL, and get a comprehensive audit report with actionable recommendations.
+AuditPilot helps e-commerce store owners evaluate whether their website is ready for paid advertising on **Google Merchant Center** and **Meta Ads** (Facebook/Instagram). Enter your store URL, and get a comprehensive audit report with actionable recommendations.
 
 ---
 
@@ -39,7 +39,7 @@ EcomCheck helps e-commerce store owners evaluate whether their website is ready 
 ## Project Structure
 
 ```
-ecomcheck/
+auditpilot/
 ├── frontend/               # React + Vite frontend
 │   ├── public/
 │   ├── src/

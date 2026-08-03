@@ -9,7 +9,7 @@ export default function handler(req, res) {
   if (req.method === 'GET') {
     sendJson(res, 200, {
       status: 'ok',
-      service: 'ecomcheck-api',
+      service: 'auditpilot-api',
       version: '0.6.3',
     })
     return

@@ -17,7 +17,7 @@ export const GMC_DETECTION_SCOPE = [
     id: 'compliance-bundle',
     label: 'Compliance Bundle',
     items: [
-      'Ads tracking & product JSON-LD (A001–A003)',
+      'Google Tag & product JSON-LD (A002–A003)',
       'HTTPS, robots.txt & meta basics (K001–K004)',
       'Trust signals & policy page coverage (T001–T002, P001–P003)',
     ],
@@ -25,7 +25,7 @@ export const GMC_DETECTION_SCOPE = [
 ]
 
 export const GMC_PRO_PLACEHOLDER = {
-  title: 'EcomCheck Pro',
+  title: 'AuditPilot Pro',
   headline: 'Unlimited GMC Audits + monitoring',
   benefits: [
     'Unlimited daily GMC compliance scans',

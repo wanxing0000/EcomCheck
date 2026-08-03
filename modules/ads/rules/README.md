@@ -4,7 +4,7 @@ Rules for Google Merchant Center and Meta Ads advertising readiness.
 
 | ID | Name | Severity | Status |
 |----|------|----------|--------|
-| A001 | Meta Pixel Detection | medium | ✅ Implemented |
+| A001 | Meta Pixel Detection | medium | ✅ Implemented (Meta Ads Audit only — excluded from GMC bundle) |
 | A002 | Google Tag Detection | medium | ✅ Implemented |
 | A003 | Product JSON-LD Detection | high | ✅ Implemented |
 

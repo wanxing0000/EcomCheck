@@ -35,7 +35,7 @@ export default function Footer() {
                   />
                 </svg>
               </div>
-              <span className="text-lg font-semibold text-gray-900">EcomCheck</span>
+              <span className="text-lg font-semibold text-gray-900">AuditPilot</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-500">
               Free ecommerce audit tools for Google Merchant Center compliance and SEO health.
@@ -92,7 +92,7 @@ export default function Footer() {
 
         <div className="mt-12 border-t border-gray-200 pt-8">
           <p className="text-center text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} EcomCheck. All rights reserved.
+            &copy; {new Date().getFullYear()} AuditPilot. All rights reserved.
           </p>
         </div>
       </div>

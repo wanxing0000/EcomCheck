@@ -72,11 +72,11 @@ export function buildArticleSchema({ title, description, path, datePublished = '
     datePublished,
     author: {
       '@type': 'Organization',
-      name: 'EcomCheck',
+      name: 'AuditPilot',
     },
     publisher: {
       '@type': 'Organization',
-      name: 'EcomCheck',
+      name: 'AuditPilot',
     },
   }
 }

@@ -1,4 +1,4 @@
-# EcomCheck Audit Regression Tests
+# AuditPilot Audit Regression Tests
 
 Automated regression suite for `/api/audit`. Captures expected outcomes for known stores so future changes do not break existing detection, scoring, GMC, product scanning, or report generation.
 
@@ -38,8 +38,10 @@ Update `expect` values when you intentionally change detection behavior. The goa
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `ECOMCHECK_API_URL` | `http://localhost:3000` | API base URL |
-| `ECOMCHECK_AUDIT_TIMEOUT_MS` | `180000` | Per-site audit timeout |
+| `AUDITPILOT_API_URL` | `http://localhost:3000` | API base URL |
+| `AUDITPILOT_AUDIT_TIMEOUT_MS` | `180000` | Per-site audit timeout |
+
+Legacy aliases `ECOMCHECK_API_URL` and `ECOMCHECK_AUDIT_TIMEOUT_MS` are still supported.
 
 ## What Gets Checked
 

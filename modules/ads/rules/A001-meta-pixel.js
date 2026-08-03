@@ -4,6 +4,8 @@ export const metaPixelRule = {
   name: 'Meta Pixel Detection',
   category: 'ads',
   severity: 'medium',
+  /** Excluded from GMC Compliance via modules/ads/rules/resolveAdsRules() */
+  metaAdsOnly: true,
   description:
     'Website should have Meta (Facebook) Pixel installed for Meta Ads conversion tracking.',
   check(auditData) {

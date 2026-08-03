@@ -11,6 +11,9 @@ const DEPRECATED_MODE_ALIASES = {
 
 const ALL_MODULE_IDS = Object.keys(moduleRegistry)
 
+/** Module bundle for GMC Compliance Audit — ads module excludes A001 (Meta Pixel) for this bundle */
+export const GMC_COMPLIANCE_MODULE_IDS = ['gmc', 'ads', 'technical']
+
 /** @type {Record<string, import('./auditModes.types.js').AuditModePreset>} */
 const MODE_PRESETS = {
   full: {
@@ -25,7 +28,7 @@ const MODE_PRESETS = {
     },
   },
   gmc: {
-    modules: ['gmc', 'ads', 'technical'],
+    modules: GMC_COMPLIANCE_MODULE_IDS,
     legacyEnabled: true,
     auditProduct: {
       id: 'gmc-audit',

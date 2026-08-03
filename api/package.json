@@ -1,8 +1,8 @@
 {
-  "name": "ecomcheck-api",
+  "name": "auditpilot-api",
   "version": "0.3.2",
   "private": true,
-  "description": "EcomCheck backend API",
+  "description": "AuditPilot backend API",
   "type": "module",
   "scripts": {
     "dev": "node ../scripts/dev-server.js",

@@ -1,6 +1,6 @@
-# EcomCheck Audit Modules
+# AuditPilot Audit Modules
 
-EcomCheck is a **modular audit platform**. Each module owns its rules, scoring, and output. The core API orchestrates modules through a central registry — adding SEO or Performance does not require rewriting the audit pipeline.
+AuditPilot is a **modular audit platform**. Each module owns its rules, scoring, and output. The core API orchestrates modules through a central registry — adding SEO or Performance does not require rewriting the audit pipeline.
 
 ## What is an audit module?
 

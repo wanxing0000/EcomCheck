@@ -47,7 +47,7 @@ export default function BlogPost() {
           datePublished: post.publishedAt,
         }),
         buildSoftwareApplicationSchema({
-          name: SEO_AUDIT_TOOL_PAGES[auditMode]?.name || 'EcomCheck Audit',
+          name: SEO_AUDIT_TOOL_PAGES[auditMode]?.name || 'AuditPilot Audit',
           description: post.description,
           path: auditPath,
         }),

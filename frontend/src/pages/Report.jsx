@@ -539,7 +539,7 @@ export default function Report() {
     const anchor = document.createElement('a')
     const host = (crawlResult.url || url || 'report').replace(/^https?:\/\//, '').replace(/[^\w.-]+/g, '-')
     anchor.href = objectUrl
-    anchor.download = `ecomcheck-${host}-${Date.now()}.json`
+    anchor.download = `auditpilot-${host}-${Date.now()}.json`
     anchor.click()
     URL.revokeObjectURL(objectUrl)
   }

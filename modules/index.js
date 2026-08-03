@@ -35,10 +35,11 @@ export function resolveModulesToRun(requestedModules) {
 /**
  * Collect rules from modules selected for execution.
  * @param {string[]|undefined} requestedModules
+ * @param {{ auditMode?: string }} [options]
  */
-export function getModuleRulesForExecution(requestedModules) {
+export function getModuleRulesForExecution(requestedModules, options = {}) {
   return resolveModulesToRun(requestedModules).flatMap(
-    (id) => moduleRegistry[id].module.getRules()
+    (id) => moduleRegistry[id].module.getRules(options)
   )
 }
 
@@ -58,7 +59,7 @@ export async function runAuditModules(crawlResult, options = {}) {
   const moduleStatus = {}
 
   for (const [id, entry] of Object.entries(moduleRegistry)) {
-    const ruleCount = entry.module.getRules().length
+    const ruleCount = entry.module.getRules(options).length
     const shouldRun = entry.enabled && modulesToRun.includes(id)
 
     moduleStatus[id] = {

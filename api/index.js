@@ -8,7 +8,7 @@ export default function handler(req, res) {
   }
 
   sendJson(res, 200, {
-    service: 'ecomcheck-api',
+    service: 'auditpilot-api',
     version: '0.6.3',
     endpoints: {
       health: 'GET /api/health',

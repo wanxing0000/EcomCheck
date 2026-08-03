@@ -25,7 +25,7 @@ ${routes
 </urlset>
 `
 
-const robotsTxt = `# EcomCheck — allow indexable marketing pages; block transactional views
+const robotsTxt = `# AuditPilot — allow indexable marketing pages; block transactional views
 User-agent: *
 Allow: /
 

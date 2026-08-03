@@ -22,7 +22,7 @@ export class CrawlerError extends Error {
 const DEFAULT_TIMEOUT_MS = 30_000
 const PAGE_FETCH_TIMEOUT_MS = 12_000
 const MAX_HTML_BYTES = 5 * 1024 * 1024
-const USER_AGENT = 'EcomCheck/0.3 (Website Audit Bot)'
+const USER_AGENT = 'AuditPilot/0.3 (Website Audit Bot)'
 
 const PAGE_TYPES = [
   'aboutUs',

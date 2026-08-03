@@ -1,4 +1,4 @@
-# EcomCheck — allow indexable marketing pages; block transactional views
+# AuditPilot — allow indexable marketing pages; block transactional views
 User-agent: *
 Allow: /
 

@@ -119,7 +119,7 @@ export function buildPageMeta(path) {
           path: guide.path,
         }),
         buildSoftwareApplicationSchema({
-          name: SEO_AUDIT_TOOL_PAGES[auditMode]?.name || 'EcomCheck Audit',
+          name: SEO_AUDIT_TOOL_PAGES[auditMode]?.name || 'AuditPilot Audit',
           description,
           path: auditPath,
         }),
