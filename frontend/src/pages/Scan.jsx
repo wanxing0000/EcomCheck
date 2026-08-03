@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import { DEFAULT_AUDIT_MODE, getAuditProductForMode } from '../data/auditProducts.js'
+import { useAuth } from '../context/AuthContext'
 import { getOrCreateClientId } from '../utils/usageLimit.js'
+import { trackCompleteAudit, trackStartAudit } from '../lib/analytics.js'
 
 const SCAN_STEPS = [
   { id: 'connect', label: 'Connecting to website' },
@@ -12,21 +14,35 @@ const SCAN_STEPS = [
   { id: 'analyze', label: 'Analyzing link structure' },
 ]
 
+const SCAN_TITLES = {
+  gmc: 'Running GMC Compliance Audit...',
+  seo: 'Running SEO Health Audit...',
+}
+
+function getAuditEntryPath(mode) {
+  if (mode === 'seo') return '/audit/seo'
+  if (mode === 'gmc') return '/audit/gmc'
+  return '/'
+}
+
 export default function Scan() {
   const location = useLocation()
   const navigate = useNavigate()
   const url = location.state?.url
   const mode = location.state?.mode || DEFAULT_AUDIT_MODE
   const auditProduct = location.state?.auditProduct || getAuditProductForMode(mode)
+  const { getAccessToken } = useAuth()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState(null)
   const [isComplete, setIsComplete] = useState(false)
 
+  const runningTitle = SCAN_TITLES[mode] || `Running ${auditProduct.name}...`
+
   useEffect(() => {
     if (!url) {
-      navigate('/', { replace: true })
+      navigate(getAuditEntryPath(mode), { replace: true })
       return
     }
 
@@ -41,10 +57,17 @@ export default function Scan() {
     }
 
     advanceSteps()
+    trackStartAudit({ mode, url })
+
+    const headers = { 'Content-Type': 'application/json' }
+    const accessToken = getAccessToken()
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+    }
 
     fetch('/api/audit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ url, mode, clientId: getOrCreateClientId() }),
     })
       .then(async (res) => {
@@ -60,6 +83,7 @@ export default function Scan() {
         setCurrentStep(SCAN_STEPS.length)
         setProgress(100)
         setIsComplete(true)
+        trackCompleteAudit({ mode, url, reportId: crawlResult.reportId || null })
         setTimeout(() => {
           navigate('/report', { state: { url, crawlResult }, replace: true })
         }, 600)
@@ -75,7 +99,7 @@ export default function Scan() {
       cancelled = true
       clearInterval(stepTimer)
     }
-  }, [url, mode, navigate])
+  }, [url, mode, navigate, getAccessToken])
 
   if (!url) return null
 
@@ -101,7 +125,7 @@ export default function Scan() {
 
         <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">{auditProduct.name}</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-          {error ? 'Scan failed' : isComplete ? 'Scan complete!' : `Running ${auditProduct.name}...`}
+          {error ? 'Scan failed' : isComplete ? 'Scan complete!' : runningTitle}
         </h1>
         <p className="mt-2 text-gray-500">{url}</p>
         <p className="mx-auto mt-3 max-w-md text-sm text-gray-600">{auditProduct.description}</p>
@@ -111,7 +135,7 @@ export default function Scan() {
         <Card className="mt-10 border-red-200 bg-red-50">
           <p className="text-sm font-medium text-red-800">{error}</p>
           <div className="mt-4 flex gap-3">
-            <Button variant="primary" onClick={() => navigate('/')}>
+            <Button variant="primary" onClick={() => navigate(getAuditEntryPath(mode), { state: { url } })}>
               Try Again
             </Button>
           </div>

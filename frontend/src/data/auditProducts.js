@@ -11,6 +11,88 @@ export const GMC_AUDIT_PRODUCT = {
   description:
     'Google Merchant Center readiness with ads, technical, and trust & policy compliance signals.',
   includes: ['gmc', 'ads', 'technical', 'trust', 'policy'],
+  landingPath: '/audit/gmc',
+  pricing: {
+    free: {
+      dailyLimit: 3,
+      features: [],
+    },
+    pro: {
+      price: null,
+      status: 'coming soon',
+    },
+  },
+}
+
+/** GMC report conversion copy — display layer only */
+export const GMC_REPORT_CONVERSION = {
+  sectionLabel: 'Next steps for your store',
+  remainingToday(remaining, limit) {
+    return `${remaining} of ${limit} free GMC scans left today`
+  },
+  unlimitedAudit: {
+    title: 'Unlimited GMC Audits',
+    description:
+      'Remove daily limits, track readiness over time, and re-scan after every fix.',
+    cta: 'Upgrade to Pro',
+  },
+  fixGuide: {
+    title: 'GMC Fix Guide',
+    description: 'Follow prioritized steps to resolve readiness blockers before Merchant Center review.',
+    cta: 'View fix recommendations',
+    ctaEmpty: 'Fix guide — coming soon',
+  },
+}
+
+export function getGmcFreeDailyLimit() {
+  return GMC_AUDIT_PRODUCT.pricing?.free?.dailyLimit ?? 3
+}
+
+/** GMC product landing page copy — used by GmcAudit.jsx and Home.jsx */
+export const GMC_LANDING = {
+  hero: {
+    title: 'Google Merchant Center Compliance Audit',
+    subtitle:
+      'Check your ecommerce store before Google Merchant Center review or suspension.',
+    cta: 'Start Free GMC Audit',
+    urlHint: 'Enter your store URL to generate a GMC Readiness Report in minutes.',
+  },
+  features: {
+    title: 'What we check',
+    subtitle: 'GMC readiness signals that commonly cause product disapprovals or account warnings.',
+    items: [
+      'Product Purchase Flow',
+      'Product Data Quality',
+      'Price Consistency',
+      'Shipping Policy',
+      'Return Policy',
+      'Payment Information',
+      'Business Information',
+    ],
+  },
+  plans: {
+    title: 'Simple pricing to get started',
+    free: {
+      name: 'Free Plan',
+      highlight: true,
+      items: ['3 GMC audits per day', 'Full GMC compliance report'],
+    },
+    pro: {
+      name: 'Pro Plan',
+      comingSoon: true,
+      items: ['Unlimited GMC audits', 'More history features (future)'],
+    },
+  },
+  why: {
+    title: 'Why GMC Audit',
+    subtitle: 'Built for sellers who rely on Google Shopping and need clarity before scaling ad spend.',
+    audiences: [
+      'Shopify sellers',
+      'WooCommerce stores',
+      'Ecommerce brands',
+      'Google Shopping advertisers',
+    ],
+  },
 }
 
 export const SEO_AUDIT_PRODUCT = {

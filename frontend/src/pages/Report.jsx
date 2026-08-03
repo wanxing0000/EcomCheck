@@ -2,6 +2,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import GmcConversionCta, { FIX_GUIDE_SECTION_ID } from '../components/GmcConversionCta'
+import ReportSaveCta from '../components/ReportSaveCta'
+import { trackViewReport } from '../lib/analytics.js'
 import {
   buildComplianceRiskAreas,
   getAuditMode,
@@ -17,11 +20,6 @@ import {
   isSeoAuditProduct,
   showTrustPolicySection,
 } from '../utils/auditDisplay.js'
-import {
-  GMC_DAILY_FREE_LIMIT,
-  GMC_REPORT_CTA,
-} from '../data/gmcProduct.js'
-
 function formatNumber(n) {
   return n?.toLocaleString?.('en-US') ?? '0'
 }
@@ -280,50 +278,6 @@ function GmcRiskAreaPill({ area }) {
   )
 }
 
-function GmcReportCta({ gmcReadiness, gmcFixRecommendations, usage }) {
-  if (!gmcReadiness) return null
-
-  const nextAction = gmcFixRecommendations?.[0]
-  const statusLabel = gmcReadiness.readinessLabel || 'Unknown'
-  const headline = gmcReadiness.riskSummary?.headline
-
-  return (
-    <div className="mt-5 border-t border-emerald-100 pt-5">
-      <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Your GMC Status</p>
-            <p className="mt-2 text-lg font-semibold text-gray-900">{statusLabel}</p>
-            {headline && <p className="mt-1 text-sm text-gray-600">{headline}</p>}
-            {nextAction && (
-              <div className="mt-4 rounded-lg border border-white bg-white/80 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Next step</p>
-                <p className="mt-1 text-sm font-medium text-gray-900">{nextAction.title}</p>
-                <p className="mt-1 text-sm text-gray-600">{nextAction.action}</p>
-              </div>
-            )}
-          </div>
-          <div className="w-full shrink-0 rounded-xl border border-dashed border-emerald-300 bg-white/60 p-4 sm:max-w-xs">
-            <p className="text-sm font-semibold text-gray-900">{GMC_REPORT_CTA.proTitle}</p>
-            <p className="mt-1 text-sm text-gray-600">{GMC_REPORT_CTA.proDescription}</p>
-            {usage && !usage.unlimited && (
-              <p className="mt-2 text-xs text-amber-700">
-                Free plan: {usage.remaining ?? 0} of {usage.dailyLimit ?? GMC_DAILY_FREE_LIMIT} scans left today
-              </p>
-            )}
-            <button
-              type="button"
-              disabled
-              className="mt-4 w-full cursor-not-allowed rounded-lg bg-emerald-600/80 px-4 py-2 text-sm font-semibold text-white opacity-90"
-            >
-              {GMC_REPORT_CTA.proCta}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function GmcFixRecommendationList({ recommendations }) {
   if (!recommendations?.length) return null
@@ -456,6 +410,15 @@ export default function Report() {
     }
   }, [url, crawlResult, navigate])
 
+  useEffect(() => {
+    if (!crawlResult) return
+    trackViewReport({
+      reportId: crawlResult.reportId || null,
+      auditMode: getAuditMode(crawlResult),
+      source: 'session',
+    })
+  }, [crawlResult])
+
   if (!url || !crawlResult) return null
 
   const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc, modules, detectionSources, report } = crawlResult
@@ -583,6 +546,8 @@ export default function Report() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+      <ReportSaveCta reportId={crawlResult.reportId} placement="top" />
+
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-medium text-brand-600">{reportProductLabel}</p>
@@ -893,7 +858,7 @@ export default function Report() {
           )}
 
           {gmcFixRecommendations.length > 0 && (
-            <div className="mt-5 border-t border-gray-100 pt-5">
+            <div id={FIX_GUIDE_SECTION_ID} className="mt-5 border-t border-gray-100 pt-5 scroll-mt-24">
               <h3 className="text-sm font-semibold text-gray-900">Fix Recommendations</h3>
               <p className="mt-1 text-xs text-gray-500">
                 Prioritized by Google Shopping disapproval risk.
@@ -903,7 +868,7 @@ export default function Report() {
           )}
 
           {auditMode === 'gmc' && (
-            <GmcReportCta
+            <GmcConversionCta
               gmcReadiness={gmcReadiness}
               gmcFixRecommendations={gmcFixRecommendations}
               usage={auditUsage}

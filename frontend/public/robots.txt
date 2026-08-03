@@ -1,0 +1,8 @@
+# EcomCheck — allow indexable marketing pages; block transactional views
+User-agent: *
+Allow: /
+
+Disallow: /scan
+Disallow: /report
+
+Sitemap: https://ecomcheck.com/sitemap.xml

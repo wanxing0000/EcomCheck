@@ -1,13 +1,16 @@
 import { Link, useLocation } from 'react-router-dom'
+import Button from './Button'
+import UserMenu from './UserMenu'
+import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
   { to: '/', label: 'Home' },
-  { to: '/scan', label: 'Scan' },
-  { to: '/report', label: 'Report' },
+  { to: '/audit/gmc', label: 'GMC Audit' },
 ]
 
 export default function Navbar() {
   const location = useLocation()
+  const { user, loading } = useAuth()
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-md">
@@ -28,9 +31,7 @@ export default function Navbar() {
               />
             </svg>
           </div>
-          <span className="text-lg font-semibold tracking-tight text-gray-900">
-            EcomCheck
-          </span>
+          <span className="text-lg font-semibold tracking-tight text-gray-900">EcomCheck</span>
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
@@ -50,12 +51,21 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            className="hidden rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-700 sm:inline-flex"
-          >
-            Start Audit
+        <div className="flex items-center gap-2 sm:gap-3">
+          {!loading && user ? (
+            <UserMenu />
+          ) : (
+            !loading && (
+              <Link to="/login">
+                <Button variant="secondary" size="sm">
+                  Login
+                </Button>
+              </Link>
+            )
+          )}
+
+          <Link to="/audit/gmc" className="hidden sm:inline-flex">
+            <Button size="sm">Start Audit</Button>
           </Link>
         </div>
       </div>

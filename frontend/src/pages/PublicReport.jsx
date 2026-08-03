@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import GmcConversionCta, { FIX_GUIDE_SECTION_ID } from '../components/GmcConversionCta'
 import {
   getAuditProduct,
+  getAuditMode,
   getComplianceScoreEntries,
   getPrimaryScoreRings,
   getReportSubtitle,
@@ -14,6 +16,8 @@ import {
   isSeoAuditProduct,
   showIssueCategory,
 } from '../utils/auditDisplay.js'
+import { fetchUsageStatus } from '../utils/usageLimit.js'
+import { trackViewReport } from '../lib/analytics.js'
 
 const CATEGORY_ORDER = ['trust', 'policy', 'technical', 'seo', 'ads', 'gmc']
 
@@ -120,6 +124,7 @@ export default function PublicReport() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [record, setRecord] = useState(null)
+  const [gmcUsage, setGmcUsage] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -155,6 +160,31 @@ export default function PublicReport() {
       cancelled = true
     }
   }, [id])
+
+  useEffect(() => {
+    if (!record?.data) return
+    trackViewReport({
+      reportId: id,
+      auditMode: getAuditMode(record.data),
+      source: 'public',
+    })
+  }, [record, id])
+
+  useEffect(() => {
+    if (!record?.data) return
+
+    const mode = getAuditMode(record.data)
+    if (mode !== 'gmc') return
+
+    let cancelled = false
+    fetchUsageStatus('gmc').then((usage) => {
+      if (!cancelled) setGmcUsage(usage)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [record])
 
   if (loading) {
     return (
@@ -195,12 +225,15 @@ export default function PublicReport() {
   const issuesByCategory = groupIssuesByCategory(issues, auditData.report?.issuesByCategory)
   const recommendations = auditData.recommendations || []
   const auditProduct = getAuditProduct(auditData)
+  const auditMode = getAuditMode(auditData)
   const reportTitle = getReportTitle(auditData)
   const reportProductLabel = getReportProductLabel(auditData)
   const reportSubtitle = getReportSubtitle(auditData)
   const fullAudit = isFullAudit(auditData)
   const gmcAuditProduct = isGmcAuditProduct(auditData)
   const seoAuditProduct = isSeoAuditProduct(auditData)
+  const gmcReadiness = auditData.report?.gmcReadiness
+  const gmcFixRecommendations = gmcReadiness?.fixRecommendations ?? []
   const complianceScoreEntries = getComplianceScoreEntries(scores)
   const primaryScoreRings = getPrimaryScoreRings(auditData, scores, {
     complianceTotal: auditData.report?.issueCounts?.complianceTotal,
@@ -315,6 +348,40 @@ export default function PublicReport() {
               </li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {auditMode === 'gmc' && gmcReadiness && gmcFixRecommendations.length > 0 && (
+        <Card id={FIX_GUIDE_SECTION_ID} className="mt-6 scroll-mt-24">
+          <h2 className="text-lg font-semibold text-gray-900">Fix Recommendations</h2>
+          <p className="mt-1 text-sm text-gray-500">Prioritized by Google Shopping disapproval risk.</p>
+          <ol className="mt-4 space-y-3">
+            {gmcFixRecommendations.map((rec) => (
+              <li
+                key={`${rec.ruleId}-${rec.priority}`}
+                className="rounded-lg border border-brand-100 bg-brand-50/40 px-4 py-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                    {rec.priority}
+                  </span>
+                  <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold text-brand-700">{rec.ruleId}</span>
+                  <h4 className="text-sm font-semibold text-gray-900">{rec.title}</h4>
+                </div>
+                {rec.action && <p className="mt-2 text-sm text-gray-700">{rec.action}</p>}
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+
+      {auditMode === 'gmc' && gmcReadiness && (
+        <Card className="mt-6 border-emerald-100 bg-white">
+          <GmcConversionCta
+            gmcReadiness={gmcReadiness}
+            gmcFixRecommendations={gmcFixRecommendations}
+            usage={gmcUsage}
+          />
         </Card>
       )}
 

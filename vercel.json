@@ -13,6 +13,10 @@
       "memory": 128,
       "maxDuration": 10
     },
+    "api/reports/mine.js": {
+      "memory": 128,
+      "maxDuration": 10
+    },
     "api/reports.js": {
       "memory": 128,
       "maxDuration": 10

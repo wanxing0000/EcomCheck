@@ -4,6 +4,8 @@ import { runAuditModules } from '../modules/index.js'
 import { scoreAudit } from '../services/scorer.js'
 import { buildProfessionalReport } from '../services/reportBuilder.js'
 import { saveReport } from '../services/reportStorage.js'
+import { recordAuditUsage } from '../services/auditUsage.js'
+import { resolveUserFromRequest } from '../services/auth.js'
 import {
   AuditModeError,
   buildAuditMetadata,
@@ -46,7 +48,7 @@ export function sendJson(res, statusCode, body) {
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.end(JSON.stringify(body))
 }
 
@@ -187,10 +189,22 @@ export async function handleAudit(req, res) {
     }
 
     let saved = null
-    try {
-      saved = await saveReport(url, auditData)
-    } catch (err) {
-      console.error('Storage error:', err.message || err)
+    const user = await resolveUserFromRequest(req)
+    if (user) {
+      try {
+        saved = await saveReport(url, auditData, {
+          userId: user.id,
+          auditMode: auditPlan.mode,
+        })
+      } catch (err) {
+        console.error('Storage error:', err.message || err)
+      }
+
+      try {
+        await recordAuditUsage(user.id, auditPlan.mode)
+      } catch (err) {
+        console.error('Usage record error:', err.message || err)
+      }
     }
 
     sendJson(res, 200, {

@@ -11,6 +11,7 @@ import healthHandler from '../api/health.js'
 import auditHandler from '../api/audit.js'
 import usageHandler from '../api/usage.js'
 import reportsHandler from '../api/reports.js'
+import reportsMineHandler from '../api/reports/mine.js'
 import reportByIdHandler from '../api/reports/[id].js'
 import { sendJson } from '../api/_shared.js'
 
@@ -31,6 +32,11 @@ const server = createServer(async (req, res) => {
 
   if (method === 'GET' && url.startsWith('/api/usage')) {
     await usageHandler(req, res)
+    return
+  }
+
+  if (method === 'GET' && url === '/api/reports/mine') {
+    await reportsMineHandler(req, res)
     return
   }
 
@@ -57,6 +63,7 @@ server.listen(PORT, () => {
   console.log(`  GET  /api/health`)
   console.log(`  POST /api/audit`)
   console.log(`  GET  /api/usage`)
+  console.log(`  GET  /api/reports/mine`)
   console.log(`  GET  /api/reports`)
   console.log(`  GET  /api/reports/:id`)
 })
