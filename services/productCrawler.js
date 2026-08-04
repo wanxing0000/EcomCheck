@@ -138,6 +138,7 @@ export async function scanProductPages(links, options = {}) {
       productName: products[0]?.name || null,
       pricing: page.pricing || null,
       priceConsistency: page.priceConsistency || null,
+      trustContent: page.trustContent || null,
     }
   })
 
@@ -183,6 +184,7 @@ export async function scanProductPages(links, options = {}) {
           products,
           pricing,
           priceConsistency,
+          trustContent,
         }) => ({
           url,
           fetched,
@@ -194,6 +196,7 @@ export async function scanProductPages(links, options = {}) {
           signals,
           pricing,
           priceConsistency,
+          trustContent,
           schemas: (products || []).map((p) => ({
             name: p.name,
             fields: p.fields,

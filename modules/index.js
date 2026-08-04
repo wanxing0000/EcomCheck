@@ -2,6 +2,7 @@ import gmcModule from './gmc/index.js'
 import adsModule from './ads/index.js'
 import technicalModule from './technical/index.js'
 import seoModule from './seo/index.js'
+import trustModule from './trust/index.js'
 import { buildModuleContext } from './_shared/context.js'
 
 /** @type {Record<string, import('./_shared/types.js').ModuleRegistryEntry>} */
@@ -10,6 +11,7 @@ export const moduleRegistry = {
   ads: { enabled: true, module: adsModule },
   technical: { enabled: true, module: technicalModule },
   seo: { enabled: true, module: seoModule },
+  trust: { enabled: true, module: trustModule },
 }
 
 /** @deprecated Use moduleRegistry */
@@ -86,4 +88,4 @@ export function getAllModuleRules() {
     .flatMap(([, entry]) => entry.module.getRules())
 }
 
-export { gmcModule, adsModule, technicalModule, seoModule }
+export { gmcModule, adsModule, technicalModule, seoModule, trustModule }

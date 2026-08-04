@@ -11,8 +11,8 @@ const DEPRECATED_MODE_ALIASES = {
 
 const ALL_MODULE_IDS = Object.keys(moduleRegistry)
 
-/** Module bundle for GMC Compliance Audit — ads module excludes A001 (Meta Pixel) for this bundle */
-export const GMC_COMPLIANCE_MODULE_IDS = ['gmc', 'ads', 'technical']
+/** Module bundle for GMC Compliance Audit — ads module excludes A001; trust adds M001-M003 */
+export const GMC_COMPLIANCE_MODULE_IDS = ['gmc', 'ads', 'technical', 'trust']
 
 /** @type {Record<string, import('./auditModes.types.js').AuditModePreset>} */
 const MODE_PRESETS = {
@@ -32,12 +32,12 @@ const MODE_PRESETS = {
     legacyEnabled: true,
     auditProduct: {
       id: 'gmc-audit',
-      name: 'GMC Compliance Audit',
+      name: 'GMC Approval Risk Audit',
       slug: 'gmc',
       primaryScore: 'gmc',
       paid: true,
       description:
-        'GMC readiness with ads tracking, technical foundations, and trust & policy signals.',
+        'Google Merchant Center approval risk analysis with compliance, ads, technical, and trust signals.',
       includes: ['gmc', 'ads', 'technical', 'trust', 'policy'],
     },
   },

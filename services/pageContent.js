@@ -1,5 +1,11 @@
 import * as cheerio from 'cheerio'
 import { extractJsonLdBlocks, collectOrganizations } from './structuredData.js'
+import {
+  buildPolicySignal,
+  detectPaymentMethods,
+  detectShippingCost,
+  hasPaymentContext,
+} from './policyIntelligence.js'
 
 const STOP_WORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
@@ -86,17 +92,25 @@ const SHIPPING_REGION_PATTERNS = [
   /\b(?:ships to|deliver(?:y)? to|available in)\b/i,
 ]
 const SHIPPING_COST_PATTERNS = [
+  /\bfree(?:\s+\w+){0,3}\s+shipping\b/i,
+  /\bfree(?:\s+\w+){0,3}\s+delivery\b/i,
   /\bfree shipping\b/i,
+  /\bfree delivery\b/i,
+  /\bshipping is free\b/i,
+  /\bno shipping charge\b/i,
+  /\bzero shipping fee\b/i,
+  /\bcomplimentary shipping\b/i,
+  /\$0 shipping\b/i,
   /\bshipping (?:cost|fee|rate|charge)s?\b/i,
   /\bflat rate\b/i,
   /\bcalculated at checkout\b/i,
   /\bshipping (?:is|starts at)\s+\$/i,
 ]
 
-const PAYMENT_KEYWORDS = /\b(payment|pay(?:ment)?s?|billing|checkout|purchase|order)\b/i
+const PAYMENT_KEYWORDS = /\b(payment|pay(?:ment)?s?|billing|checkout|purchase|order|accept(?:s|ed)?)\b/i
 const PAYMENT_METHOD_PATTERNS = [
-  /\bcredit card\b/i,
-  /\bdebit card\b/i,
+  /\bcredit card(?:s)?\b/i,
+  /\bdebit card(?:s)?\b/i,
   /\bpaypal\b/i,
   /\bstripe\b/i,
   /\bapple pay\b/i,
@@ -108,6 +122,10 @@ const PAYMENT_METHOD_PATTERNS = [
   /\bamex\b/i,
   /\bklarna\b/i,
   /\bshop pay\b/i,
+  /\bcard payments?\b/i,
+  /\bsecure checkout\b/i,
+  /\bcheckout provider\b/i,
+  /\bwe accept\b/i,
 ]
 const PAYMENT_CURRENCY_PATTERNS = [
   /\b(?:usd|eur|gbp|cad|aud)\b/i,
@@ -115,13 +133,14 @@ const PAYMENT_CURRENCY_PATTERNS = [
   /\b(?:all prices|prices are) (?:in|shown in)\b/i,
 ]
 
-function buildPolicyQualityResult({ textLength, checks, missingLabels, riskMessages }) {
+function buildPolicyQualityResult({ textLength, checks, missingLabels, riskMessages, signals = {} }) {
   const passedChecks = Object.values(checks).filter(Boolean).length
   const qualityScore = Math.round((passedChecks / Object.keys(checks).length) * 100)
 
   return {
     textLength,
     checks,
+    signals,
     qualityScore,
     missing: missingLabels,
     risks: riskMessages,
@@ -139,6 +158,12 @@ function extractBodyText($) {
   }
 
   return normalizeWhitespace($('body').text())
+}
+
+function extractFooterText($) {
+  const footer = $(REGION_SELECTORS.footer).first()
+  if (!footer.length) return ''
+  return normalizeWhitespace(footer.text())
 }
 
 function extractKeywords(text, title, h1, limit = 10) {
@@ -353,6 +378,14 @@ export function getBodyTextFromHtml(html) {
 }
 
 /**
+ * Extract footer text from HTML without stripping footer from the DOM first.
+ */
+export function getFooterTextFromHtml(html) {
+  const $ = cheerio.load(html)
+  return extractFooterText($)
+}
+
+/**
  * Analyze return/refund policy page quality for GMC compliance.
  * @param {string} text - Normalized page body text
  * @param {{ emails?: string[], phones?: string[], addresses?: string[] }} pageContact
@@ -439,7 +472,8 @@ export function analyzeShippingPolicyQuality(text) {
 
   const deliveryTime = DELIVERY_TIME_PATTERNS.some((pattern) => pattern.test(text))
   const shippingRegions = SHIPPING_REGION_PATTERNS.some((pattern) => pattern.test(text))
-  const shippingCost = SHIPPING_COST_PATTERNS.some((pattern) => pattern.test(text))
+  const shippingCostSignal = detectShippingCost(text)
+  const shippingCost = shippingCostSignal.found
 
   const checks = {
     sufficientLength: textLength >= 80,
@@ -447,6 +481,10 @@ export function analyzeShippingPolicyQuality(text) {
     deliveryTime,
     shippingRegions,
     shippingCost,
+  }
+
+  const signals = {
+    shippingCost: buildPolicySignal(shippingCostSignal),
   }
 
   const missing = []
@@ -465,6 +503,7 @@ export function analyzeShippingPolicyQuality(text) {
   return buildPolicyQualityResult({
     textLength,
     checks,
+    signals,
     missingLabels: missing,
     riskMessages: risks,
   })
@@ -477,8 +516,9 @@ export function analyzeShippingPolicyQuality(text) {
  */
 export function analyzePaymentPolicyQuality(text, options = {}) {
   const textLength = text.length
-  const paymentKeywords = PAYMENT_KEYWORDS.test(text)
-  const paymentMethods = PAYMENT_METHOD_PATTERNS.some((pattern) => pattern.test(text))
+  const paymentKeywords = PAYMENT_KEYWORDS.test(text) || hasPaymentContext(text)
+  const paymentMethodsSignal = detectPaymentMethods(text)
+  const paymentMethods = paymentMethodsSignal.found
   const currencyOrPricing = PAYMENT_CURRENCY_PATTERNS.some((pattern) => pattern.test(text))
   const hasPaymentSignals = paymentKeywords && (paymentMethods || currencyOrPricing)
 
@@ -488,6 +528,10 @@ export function analyzePaymentPolicyQuality(text, options = {}) {
     paymentMethods,
     currencyOrPricing,
     hasPaymentSignals,
+  }
+
+  const signals = {
+    paymentMethods: buildPolicySignal(paymentMethodsSignal),
   }
 
   const missing = []
@@ -512,6 +556,7 @@ export function analyzePaymentPolicyQuality(text, options = {}) {
     ...buildPolicyQualityResult({
       textLength,
       checks,
+      signals,
       missingLabels: missing,
       riskMessages: risks,
     }),
@@ -527,6 +572,7 @@ export function parsePageContent(html, pageUrl) {
 
   const title = normalizeWhitespace($('title').first().text())
   const h1 = normalizeWhitespace($('h1').first().text())
+  const footerText = extractFooterText($)
   const text = extractBodyText($)
   const keywords = extractKeywords(text, title, h1)
 
@@ -536,6 +582,8 @@ export function parsePageContent(html, pageUrl) {
     title,
     h1,
     textLength: text.length,
+    bodyText: text.slice(0, 50000),
+    footerText: footerText.slice(0, 20000),
     keywords,
     policyQuality: null,
   }

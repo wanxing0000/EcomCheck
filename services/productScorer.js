@@ -458,6 +458,7 @@ export function scoreProductPage(html, url) {
     products,
     pricing,
     priceConsistency,
+    trustContent: extractProductPageTrustContent(html),
   }
 }
 
@@ -485,6 +486,151 @@ export function discoverProductCandidates(links) {
   }
 
   return candidates.sort((a, b) => b.urlScore - a.urlScore)
+}
+
+const PRODUCT_TRUST_SPEC_PATTERNS = [
+  /\bmaterial(s)?\b/i,
+  /\bfabric\b/i,
+  /\bsize(s)?\b/i,
+  /\bdimension(s)?\b/i,
+  /\bweight\b/i,
+  /\bspecification(s)?\b/i,
+]
+
+const PRODUCT_DESCRIPTION_SELECTORS = [
+  '[itemprop="description"]',
+  '.product-description',
+  '.product__description',
+  '.product-single__description',
+  '.woocommerce-product-details__short-description',
+  '.product-info',
+  '.product-details',
+  '#product-description',
+  'main',
+]
+
+const PRODUCT_IMAGE_SCOPE_SELECTORS = [
+  '[itemtype*="Product"]',
+  '.product',
+  '.product-page',
+  '.product-single',
+  'main',
+  'body',
+]
+
+const ATTRIBUTE_HTML_PATTERNS = {
+  material: /\bmaterial(s)?\b/i,
+  size: /\bsize(s)?\b|\bdimension(s)?\b/i,
+  color: /\bcolou?r(s)?\b/i,
+  model: /\bmodel\b|\bstyle\b/i,
+}
+
+const MARKETING_HEAVY_HTML_PATTERNS = [
+  /\bbest ever\b/i,
+  /\blimited time\b/i,
+  /\bact now\b/i,
+  /\b100%\s+(?:satisfaction|guarantee)\b/i,
+]
+
+function normalizeProductText(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim()
+}
+
+function extractScopedProductText($, selectors) {
+  for (const selector of selectors) {
+    const el = $(selector).first()
+    if (el.length) {
+      return normalizeProductText(el.text())
+    }
+  }
+  return ''
+}
+
+function extractProductImages($) {
+  for (const selector of PRODUCT_IMAGE_SCOPE_SELECTORS) {
+    const scope = $(selector).first()
+    if (!scope.length) continue
+
+    const images = scope.find('img').toArray()
+    if (images.length === 0) continue
+
+    let withAlt = 0
+    for (const node of images) {
+      const alt = $(node).attr('alt')
+      if (alt && alt.trim().length > 1) withAlt += 1
+    }
+
+    return {
+      imageCount: images.length,
+      imagesWithAlt: withAlt,
+      hasMainImage: images.length > 0,
+    }
+  }
+
+  return { imageCount: 0, imagesWithAlt: 0, hasMainImage: false }
+}
+
+/**
+ * Extract explainable product page trust content from HTML.
+ * @param {string} html
+ */
+export function extractProductPageTrustContent(html) {
+  if (!html) {
+    return {
+      descriptionLength: 0,
+      hasSpecifications: false,
+      marketingHeavy: false,
+      factualAttributes: [],
+      imageCount: 0,
+      imagesWithAlt: 0,
+      hasMainImage: false,
+      htmlAttributes: {},
+      hasReviews: false,
+      hasGuarantee: false,
+      hasContactOrOrder: false,
+    }
+  }
+
+  const $ = cheerio.load(html)
+  const descriptionText = extractScopedProductText($, PRODUCT_DESCRIPTION_SELECTORS)
+  const descriptionLength = descriptionText.length
+  const bodyText = normalizeProductText($('body').text())
+  const imageSignals = extractProductImages($)
+  const hasSpecifications = PRODUCT_TRUST_SPEC_PATTERNS.some((pattern) => pattern.test(bodyText))
+  const marketingHeavy =
+    descriptionLength < 120 && MARKETING_HEAVY_HTML_PATTERNS.some((pattern) => pattern.test(bodyText))
+
+  const htmlAttributes = {}
+  for (const [key, pattern] of Object.entries(ATTRIBUTE_HTML_PATTERNS)) {
+    htmlAttributes[key] = pattern.test(bodyText)
+  }
+
+  const hasReviews =
+    /review|rating|stars/i.test(bodyText) &&
+    ($('[itemprop="review"], .reviews, .product-reviews, #reviews').length > 0 ||
+      /\b\d(\.\d)?\s*\/\s*5\b/.test(bodyText))
+
+  const hasGuarantee = /\b(guarantee|warranty|money[- ]back|satisfaction guaranteed)\b/i.test(bodyText)
+  const hasContactOrOrder =
+    /\b(contact us|customer service|shipping|returns)\b/i.test(bodyText) ||
+    $('a[href^="mailto:"], a[href^="tel:"]').length > 0 ||
+    /add to cart|buy now|add-to-cart/i.test(html)
+
+  return {
+    descriptionLength,
+    hasSpecifications,
+    marketingHeavy,
+    factualAttributes: Object.entries(htmlAttributes)
+      .filter(([, found]) => found)
+      .map(([key]) => key),
+    imageCount: imageSignals.imageCount,
+    imagesWithAlt: imageSignals.imagesWithAlt,
+    hasMainImage: imageSignals.hasMainImage,
+    htmlAttributes,
+    hasReviews,
+    hasGuarantee,
+    hasContactOrOrder,
+  }
 }
 
 export { MAX_SCORE_CANDIDATES }

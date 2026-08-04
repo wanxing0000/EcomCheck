@@ -51,7 +51,7 @@ export function isModuleExecuted(auditData, moduleId) {
   const mode = getAuditMode(auditData)
   if (mode === 'gmc') {
     if (moduleId === 'gmc') return Boolean(auditData?.gmc)
-    if (moduleId === 'ads' || moduleId === 'technical') {
+    if (moduleId === 'ads' || moduleId === 'technical' || moduleId === 'trust') {
       return Boolean(auditData?.modules?.[moduleId])
     }
     return false
@@ -78,7 +78,13 @@ export function showIssueCategory(auditData, category) {
   if (category === 'technical') {
     return isGmcAuditProduct(auditData) && isModuleExecuted(auditData, 'technical')
   }
-  if (category === 'trust' || category === 'policy') return showTrustPolicySection(auditData)
+  if (category === 'trust') {
+    return (
+      (isGmcAuditProduct(auditData) && isModuleExecuted(auditData, 'trust')) ||
+      showTrustPolicySection(auditData)
+    )
+  }
+  if (category === 'policy') return showTrustPolicySection(auditData)
   return false
 }
 
@@ -106,9 +112,9 @@ export function getPrimaryScoreRings(auditData, scores = {}, counts = {}) {
       break
     case 'gmc':
       pushRing(
-        'GMC Readiness Score',
+        'Approval Risk Score',
         scores.gmc ?? scores.compliance ?? scores.overall,
-        `${counts.complianceTotal ?? counts.total ?? 0} item${(counts.complianceTotal ?? counts.total) === 1 ? '' : 's'} to review`
+        null
       )
       break
     case 'seo':
@@ -163,7 +169,7 @@ export function getReportSubtitle(auditData) {
 
 export function getReportTitle(auditData) {
   const mode = getAuditMode(auditData)
-  if (mode === 'gmc') return 'GMC Readiness Report'
+  if (mode === 'gmc') return 'GMC Approval Risk Report'
   if (mode === 'seo') return 'SEO Health Report'
   return `${getAuditProduct(auditData).name} Report`
 }

@@ -671,8 +671,24 @@ async function fetchHtmlSafe(url, timeout) {
   }
 }
 
-async function fetchKeyPageContents(pages, homepageHtml) {
-  const pageContent = {}
+function emptyPageContent(page) {
+  return {
+    url: page?.url || null,
+    fetched: false,
+    title: '',
+    h1: '',
+    textLength: 0,
+    bodyText: '',
+    footerText: '',
+    keywords: [],
+  }
+}
+
+async function fetchKeyPageContents(pages, homepageHtml, homepageUrl) {
+  const homepageParsed = parsePageContent(homepageHtml, homepageUrl || null)
+  const pageContent = {
+    homepage: homepageParsed,
+  }
   const contactSources = [extractContactInfo(homepageHtml, { page: 'homepage' })]
   const htmlCache = new Map()
 
@@ -680,14 +696,7 @@ async function fetchKeyPageContents(pages, homepageHtml) {
     const page = pages[pageType]
 
     if (!page?.found || !page.url) {
-      pageContent[pageType] = {
-        url: page?.url || null,
-        fetched: false,
-        title: '',
-        h1: '',
-        textLength: 0,
-        keywords: [],
-      }
+      pageContent[pageType] = emptyPageContent(page)
       return
     }
 
@@ -703,12 +712,8 @@ async function fetchKeyPageContents(pages, homepageHtml) {
 
       if (result.error || !result.html) {
         pageContent[pageType] = {
+          ...emptyPageContent(page),
           url: page.url,
-          fetched: false,
-          title: '',
-          h1: '',
-          textLength: 0,
-          keywords: [],
           error: result.error,
         }
         return
@@ -783,7 +788,7 @@ export async function crawl(url, options = {}) {
 
   pages = enrichedPages
 
-  const { pageContent, contactInfo } = await fetchKeyPageContents(pages, html)
+  const { pageContent, contactInfo } = await fetchKeyPageContents(pages, html, finalUrl)
 
   const productScan = await scanProductPages(allLinks, {
     maxPages: 5,

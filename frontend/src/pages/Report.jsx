@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import ApprovalRiskSummary from '../components/ApprovalRiskSummary'
 import GmcConversionCta, { FIX_GUIDE_SECTION_ID } from '../components/GmcConversionCta'
 import ReportSaveCta from '../components/ReportSaveCta'
 import { trackViewReport } from '../lib/analytics.js'
@@ -196,11 +197,20 @@ function RoadmapItem({ item }) {
         <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{item.category}</span>
       </div>
+      {item.riskImpact && (
+        <p className="mt-2 text-xs font-medium text-gray-500">{item.riskImpact}</p>
+      )}
       <p className="mt-2 text-sm text-gray-600">{item.reason}</p>
       {item.expectedImpact && (
         <p className="mt-1 text-sm text-gray-500">
           <span className="font-medium text-gray-700">Expected impact: </span>
           {item.expectedImpact}
+        </p>
+      )}
+      {item.recommendation && (
+        <p className="mt-1 text-sm text-gray-600">
+          <span className="font-medium text-gray-800">Recommendation: </span>
+          {item.recommendation}
         </p>
       )}
     </li>
@@ -244,8 +254,27 @@ function getSeoHealthLabelStyle(label) {
   }
 }
 
+function getGmcRiskLevelStyle(riskLevel) {
+  switch (riskLevel) {
+    case 'LOW RISK':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'MEDIUM RISK':
+      return 'bg-amber-100 text-amber-900 border-amber-200'
+    case 'HIGH RISK':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-200'
+  }
+}
+
 function getGmcReadinessLabelStyle(label) {
   switch (label) {
+    case 'Low Risk':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'Medium Risk':
+      return 'bg-amber-100 text-amber-900 border-amber-200'
+    case 'High Risk':
+      return 'bg-red-100 text-red-800 border-red-200'
     case 'Ready':
       return 'bg-green-100 text-green-800 border-green-200'
     case 'Nearly Ready':
@@ -278,6 +307,260 @@ function GmcRiskAreaPill({ area }) {
   )
 }
 
+
+function getFixGuidePriorityLabel(priority) {
+  if (priority == null) return 'Medium Priority'
+  if (priority <= 10) return 'High Priority'
+  if (priority <= 40) return 'Medium Priority'
+  return 'Low Priority'
+}
+
+function getFixGuidePriorityStyle(priority) {
+  if (priority == null) return 'bg-amber-100 text-amber-900 border-amber-200'
+  if (priority <= 10) return 'bg-red-100 text-red-800 border-red-200'
+  if (priority <= 40) return 'bg-amber-100 text-amber-900 border-amber-200'
+  return 'bg-blue-100 text-blue-800 border-blue-200'
+}
+
+function FixGuideTagList({ label, items, tone = 'neutral' }) {
+  if (!items?.length) return null
+
+  const toneStyles = {
+    detected: 'bg-green-50 text-green-700 border-green-200',
+    missing: 'bg-amber-50 text-amber-800 border-amber-200',
+    neutral: 'bg-gray-100 text-gray-700 border-gray-200',
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <li
+            key={item}
+            className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${toneStyles[tone] || toneStyles.neutral}`}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function FixGuideCard({ action }) {
+  return (
+    <li className="rounded-xl border border-brand-100 bg-white px-4 py-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getFixGuidePriorityStyle(action.priority)}`}
+        >
+          {getFixGuidePriorityLabel(action.priority)}
+        </span>
+        <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-700">{action.ruleId}</span>
+        <h3 className="text-sm font-semibold text-gray-900">{action.title}</h3>
+      </div>
+
+      {action.problem && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Problem</p>
+          <p className="mt-1 text-sm text-gray-700">{action.problem}</p>
+        </div>
+      )}
+
+      {action.whyItMatters && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Why It Matters</p>
+          <p className="mt-1 text-sm text-gray-600">{action.whyItMatters}</p>
+        </div>
+      )}
+
+      {action.recommendedFix && (
+        <div className="mt-4 rounded-lg border border-brand-100 bg-brand-50/50 px-3 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Recommended Fix</p>
+          <p className="mt-1 text-sm text-gray-800">{action.recommendedFix}</p>
+        </div>
+      )}
+
+      {action.expectedImpact && (
+        <p className="mt-3 text-sm text-gray-600">
+          <span className="font-medium text-gray-800">Expected Impact: </span>
+          {action.expectedImpact}
+        </p>
+      )}
+    </li>
+  )
+}
+
+function getRiskTierLabel(tier) {
+  switch (tier) {
+    case 'critical':
+      return 'Critical'
+    case 'warning':
+      return 'Warning'
+    default:
+      return 'Advisory'
+  }
+}
+
+function getRiskTierHeadingStyle(tier) {
+  switch (tier) {
+    case 'critical':
+      return 'text-red-700'
+    case 'warning':
+      return 'text-amber-700'
+    default:
+      return 'text-blue-700'
+  }
+}
+
+const FIX_RECOMMENDATION_TIERS = [
+  {
+    key: 'critical',
+    label: 'Critical',
+    description: 'May block Merchant Center approval',
+  },
+  {
+    key: 'warning',
+    label: 'Warning',
+    description: 'May reduce approval probability',
+  },
+  {
+    key: 'advisory',
+    label: 'Advisory',
+    description: 'Recommended optimization — optional for many listings',
+  },
+]
+
+function FixRecommendationsSection({ complianceActions }) {
+  if (!complianceActions?.length) return null
+
+  const sortedActions = [...complianceActions].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
+
+  return (
+    <div id={FIX_GUIDE_SECTION_ID} className="mt-6 scroll-mt-24">
+      <Card className="border-brand-100">
+        <h2 className="text-lg font-semibold text-gray-900">Fix Recommendations</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Action items to improve Merchant Center approval readiness.
+        </p>
+
+        {FIX_RECOMMENDATION_TIERS.map((tier) => {
+          const tierActions = sortedActions.filter((action) => action.riskTier === tier.key)
+          if (tierActions.length === 0) return null
+
+          return (
+            <div key={tier.key} className="mt-6">
+              <h3 className={`text-sm font-semibold uppercase tracking-wide ${getRiskTierHeadingStyle(tier.key)}`}>
+                {tier.label}
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">{tier.description}</p>
+              <ol className="mt-3 space-y-4">
+                {tierActions.map((action) => (
+                  <FixGuideCard key={action.ruleId} action={action} />
+                ))}
+              </ol>
+            </div>
+          )
+        })}
+      </Card>
+    </div>
+  )
+}
+
+function EvidenceCard({ action }) {
+  const evidence = action.evidence || {}
+
+  return (
+    <li className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold text-gray-700">{action.ruleId}</span>
+        <h3 className="text-sm font-semibold text-gray-900">{action.title}</h3>
+      </div>
+
+      {evidence.message && (
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Scan Result</p>
+          <p className="mt-1 text-sm text-gray-700">{evidence.message}</p>
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <FixGuideTagList label="Detected" items={action.detected} tone="detected" />
+        <FixGuideTagList label="Missing" items={action.missing} tone="missing" />
+      </div>
+
+      {action.recommendedFix && (
+        <p className="mt-3 text-sm text-gray-600">
+          <span className="font-medium text-gray-800">Recommendation: </span>
+          {action.recommendedFix}
+        </p>
+      )}
+
+      {evidence.policyQuality?.checks && (
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+          {Object.entries(evidence.policyQuality.checks).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between text-sm">
+              <dt className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</dt>
+              <dd className={value ? 'font-medium text-green-700' : 'font-medium text-amber-700'}>
+                {value ? 'Yes' : 'No'}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {evidence.trustDetails?.signals && (
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+          {Object.entries(evidence.trustDetails.signals).map(([key, value]) => (
+            <div key={key} className="flex items-center justify-between text-sm">
+              <dt className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1')}</dt>
+              <dd className={value ? 'font-medium text-green-700' : 'font-medium text-amber-700'}>
+                {value ? 'Found' : 'Missing'}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {evidence.productTrustReport?.factors?.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {evidence.productTrustReport.factors.map((factor) => (
+            <li key={factor.name} className="rounded border border-white bg-white px-3 py-2 text-sm">
+              <p className="font-medium text-gray-900">{factor.name}</p>
+              {factor.detected?.length > 0 && (
+                <p className="mt-1 text-xs text-green-700">Detected: {factor.detected.join(', ')}</p>
+              )}
+              {factor.missing?.length > 0 && (
+                <p className="mt-1 text-xs text-amber-700">Missing: {factor.missing.join(', ')}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+function DetailedEvidenceSection({ complianceActions }) {
+  if (!complianceActions?.length) return null
+
+  return (
+    <Card className="mt-6">
+      <h2 className="text-lg font-semibold text-gray-900">Detailed Evidence</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        Raw detection signals and scan results supporting each recommendation.
+      </p>
+      <ul className="mt-5 space-y-4">
+        {[...complianceActions]
+          .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
+          .map((action) => (
+            <EvidenceCard key={action.ruleId} action={action} />
+          ))}
+      </ul>
+    </Card>
+  )
+}
 
 function GmcFixRecommendationList({ recommendations }) {
   if (!recommendations?.length) return null
@@ -450,6 +733,10 @@ export default function Report() {
   const gmcWarningIssues =
     gmcReadiness?.warnings ??
     gmcIssues.filter((issue) => issue.severity === 'warning' || issue.severity === 'low')
+  const gmcAdvisoryIssues = gmcReadiness?.advisories ?? []
+  const gmcRiskScore =
+    gmcReadiness?.gmcRiskScore ?? gmcReadiness?.readinessScore ?? gmc?.score ?? professionalReport.scores?.gmc
+  const gmcRiskLevel = gmcReadiness?.riskLevel ?? gmcReadiness?.readinessLabel
   const gmcFixRecommendations =
     gmcReadiness?.fixRecommendations ??
     (gmc?.recommendations || []).map((rec, index) => ({
@@ -497,6 +784,22 @@ export default function Report() {
   const seoIssueCount = professionalReport.issueCounts?.seoTotal ?? seoIssues.length
   const coverageEntries = getCoverageEntries(professionalReport)
   const improvementRoadmap = professionalReport.improvementRoadmap
+  const approvalRisk = gmcReadiness?.approvalRisk ?? professionalReport.approvalRisk
+  const complianceActions =
+    gmcReadiness?.complianceActions ??
+    (gmcReadiness?.fixGuides || []).map((guide) => ({
+      ...guide,
+      riskTier: guide.priority <= 10 ? 'critical' : guide.priority <= 40 ? 'warning' : 'advisory',
+      evidence: { message: guide.problem || '' },
+    }))
+  const canonicalRuleIds = new Set(complianceActions.map((action) => action.ruleId))
+  const gmcActionRecommendations = complianceActions.map((action, index) => ({
+    priority: index + 1,
+    ruleId: action.ruleId,
+    title: action.title,
+    action: action.recommendedFix,
+    impact: action.expectedImpact,
+  }))
 
   const auditProduct = getAuditProduct(crawlResult)
   const auditMode = getAuditMode(crawlResult)
@@ -552,6 +855,10 @@ export default function Report() {
         crawlResult={crawlResult}
         placement="top"
       />
+
+      {auditMode === 'gmc' && approvalRisk && (
+        <ApprovalRiskSummary approvalRisk={approvalRisk} />
+      )}
 
       <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -621,20 +928,39 @@ export default function Report() {
           {executiveSummary.topPriorities?.length > 0 && (
             <div className="mt-5">
               <h3 className="text-sm font-semibold text-gray-900">Top Priorities</h3>
-              <ol className="mt-3 space-y-3">
+              <p className="mt-1 text-xs text-gray-500">
+                {auditMode === 'gmc' && complianceActions.length > 0
+                  ? `${complianceActions.length} unique issue(s) ranked by approval impact. Details in Fix Recommendations.`
+                  : 'Highest-impact items to address first.'}
+              </p>
+              <ol className="mt-3 space-y-2">
                 {executiveSummary.topPriorities.map((item) => (
-                  <li key={item.priority} className="rounded-lg border border-white/80 bg-white/70 px-4 py-3">
+                  <li key={item.ruleId || item.priority} className="rounded-lg border border-white/80 bg-white/70 px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
                         {item.priority}
                       </span>
+                      {item.ruleId && (
+                        <span className="rounded bg-brand-100 px-1.5 py-0.5 text-xs font-bold text-brand-700">
+                          {item.ruleId}
+                        </span>
+                      )}
                       <span className="text-sm font-semibold text-gray-900">{item.title}</span>
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        {item.category}
-                      </span>
+                      {item.category && (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                          {item.category}
+                        </span>
+                      )}
+                      {item.riskTier && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${getRiskTierHeadingStyle(item.riskTier)} bg-white`}
+                        >
+                          {getRiskTierLabel(item.riskTier)}
+                        </span>
+                      )}
                     </div>
-                    {item.impact && <p className="mt-2 text-sm text-gray-600">{item.impact}</p>}
-                    {item.action && (
+                    {!item.ruleId && item.impact && <p className="mt-2 text-sm text-gray-600">{item.impact}</p>}
+                    {!item.ruleId && item.action && (
                       <p className="mt-1 text-sm text-gray-600">
                         <span className="font-medium text-gray-800">Action: </span>
                         {item.action}
@@ -734,12 +1060,56 @@ export default function Report() {
         </Card>
       )}
 
-      {(fullAudit || auditMode === 'gmc') && improvementRoadmap && (
+      {(fullAudit || auditMode === 'gmc') &&
+        improvementRoadmap &&
+        !(auditMode === 'gmc' && complianceActions.length > 0) && (
         <Card className="mt-6">
           <h2 className="text-lg font-semibold text-gray-900">Improvement Roadmap</h2>
-          <p className="mt-1 text-sm text-gray-500">Prioritized actions to improve store readiness.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {improvementRoadmap.source === 'approvalRisk'
+              ? 'Before applying to Merchant Center, fix these issues first.'
+              : auditMode === 'gmc'
+                ? 'Prioritized actions ranked by Merchant Center approval risk.'
+                : 'Prioritized actions to improve store readiness.'}
+          </p>
 
-          {improvementRoadmap.immediate?.length > 0 && (
+          {auditMode === 'gmc' && improvementRoadmap.critical?.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-red-700">Critical</h3>
+              <p className="mt-1 text-xs text-gray-500">May block Merchant Center approval</p>
+              <ul className="mt-3 space-y-3">
+                {improvementRoadmap.critical.map((item, index) => (
+                  <RoadmapItem key={`critical-${index}`} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {auditMode === 'gmc' && improvementRoadmap.warning?.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-700">Warning</h3>
+              <p className="mt-1 text-xs text-gray-500">May reduce approval probability</p>
+              <ul className="mt-3 space-y-3">
+                {improvementRoadmap.warning.map((item, index) => (
+                  <RoadmapItem key={`warning-${index}`} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {auditMode === 'gmc' && improvementRoadmap.advisory?.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-blue-700">Advisory</h3>
+              <p className="mt-1 text-xs text-gray-500">Recommended optimization — optional for many listings</p>
+              <ul className="mt-3 space-y-3">
+                {improvementRoadmap.advisory.map((item, index) => (
+                  <RoadmapItem key={`advisory-${index}`} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {auditMode !== 'gmc' && improvementRoadmap.immediate?.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-red-700">Fix Now</h3>
               <ul className="mt-3 space-y-3">
@@ -750,7 +1120,7 @@ export default function Report() {
             </div>
           )}
 
-          {improvementRoadmap.recommended?.length > 0 && (
+          {auditMode !== 'gmc' && improvementRoadmap.recommended?.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-700">Improve Later</h3>
               <ul className="mt-3 space-y-3">
@@ -761,7 +1131,7 @@ export default function Report() {
             </div>
           )}
 
-          {improvementRoadmap.future?.length > 0 && (
+          {auditMode !== 'gmc' && improvementRoadmap.future?.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-blue-700">Future</h3>
               <ul className="mt-3 space-y-3">
@@ -772,13 +1142,25 @@ export default function Report() {
             </div>
           )}
 
-          {!improvementRoadmap.immediate?.length &&
+          {auditMode === 'gmc' &&
+            !improvementRoadmap.critical?.length &&
+            !improvementRoadmap.warning?.length &&
+            !improvementRoadmap.advisory?.length && (
+              <p className="mt-4 text-sm text-green-700">No improvement actions required for the current rule set.</p>
+            )}
+
+          {auditMode !== 'gmc' &&
+            !improvementRoadmap.immediate?.length &&
             !improvementRoadmap.recommended?.length &&
             !improvementRoadmap.future?.length && (
               <p className="mt-4 text-sm text-green-700">No improvement actions required for the current rule set.</p>
             )}
         </Card>
       )}
+
+      {auditMode === 'gmc' && <FixRecommendationsSection complianceActions={complianceActions} />}
+
+      {auditMode === 'gmc' && <DetailedEvidenceSection complianceActions={complianceActions} />}
 
       {/* Professional Issues by Category — compliance-only fallback when no module sections render */}
       {complianceIssueCount === 0 &&
@@ -795,35 +1177,57 @@ export default function Report() {
         </Card>
       )}
 
-      {/* GMC Readiness */}
+      {/* GMC Approval Risk */}
       {showGmc && (
         <Card className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Google Merchant Center Readiness</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Google Merchant Center Approval Risk</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Product readiness report for Google Shopping approval.
+                Approval risk analysis for Google Merchant Center review and suspension prevention.
               </p>
-              {gmcReadiness?.readinessLabel && (
+              {gmcRiskLevel && (
                 <span
-                  className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getGmcReadinessLabelStyle(gmcReadiness.readinessLabel)}`}
+                  className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${
+                    gmcReadiness?.riskLevel
+                      ? getGmcRiskLevelStyle(gmcRiskLevel)
+                      : getGmcReadinessLabelStyle(gmcRiskLevel)
+                  }`}
                 >
-                  {gmcReadiness.readinessLabel}
+                  {gmcRiskLevel}
                 </span>
               )}
+              {gmcRiskScore != null && (
+                <p className="mt-3 text-sm text-gray-700">
+                  <span className="font-medium text-gray-900">Score: </span>
+                  {gmcRiskScore}/100
+                </p>
+              )}
+              {gmcReadiness?.riskSummary?.issueCountLine?.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Issues</p>
+                  <ul className="mt-1 space-y-0.5 text-sm text-gray-700">
+                    {gmcReadiness.riskSummary.issueCountLine.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <ModuleScoreRing
-              score={gmcReadiness?.readinessScore ?? gmc?.score ?? professionalReport.scores?.gmc}
-              label="Readiness Score"
-              summary={gmc?.summary}
-            />
+            <ScoreRing label="Approval Risk Score" value={gmcRiskScore} size="lg" />
           </div>
 
           {gmcReadiness?.riskSummary && (
             <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <h3 className="text-sm font-semibold text-gray-900">GMC Risk Summary</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Approval Risk Summary</h3>
               <p className="mt-2 text-sm font-medium text-gray-900">{gmcReadiness.riskSummary.headline}</p>
               <p className="mt-1 text-sm text-gray-600">{gmcReadiness.riskSummary.summary}</p>
+              {complianceActions.length > 0 && (
+                <p className="mt-2 text-sm text-gray-600">
+                  <span className="font-medium text-gray-800">{complianceActions.length} unique issue(s)</span>{' '}
+                  identified across all checks.
+                </p>
+              )}
               {gmcReadiness.riskSummary.riskAreas?.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {gmcReadiness.riskSummary.riskAreas.map((area) => (
@@ -834,12 +1238,22 @@ export default function Report() {
             </div>
           )}
 
-          {gmcCriticalIssues.length > 0 && (
+          {auditMode === 'gmc' && complianceActions.length > 0 && (
+            <div className="mt-5 rounded-lg border border-brand-100 bg-brand-50/40 px-4 py-3">
+              <p className="text-sm text-gray-700">
+                Issue details are consolidated in <span className="font-medium">Fix Recommendations</span> and{' '}
+                <span className="font-medium">Detailed Evidence</span> above to avoid duplicate listings.
+              </p>
+            </div>
+          )}
+
+          {auditMode !== 'gmc' && gmcCriticalIssues.length > 0 && (
             <div className="mt-5">
               <h3 className="text-sm font-semibold text-gray-900">
                 Critical Issues
                 <span className="ml-2 font-normal text-gray-500">({gmcCriticalIssues.length})</span>
               </h3>
+              <p className="mt-1 text-xs text-gray-500">May block Merchant Center approval</p>
               <ul className="mt-3 space-y-3">
                 {gmcCriticalIssues.map((issue) => (
                   <IssueCard key={`${issue.id}-${issue.severity}-critical`} issue={issue} />
@@ -848,12 +1262,13 @@ export default function Report() {
             </div>
           )}
 
-          {gmcWarningIssues.length > 0 && (
+          {auditMode !== 'gmc' && gmcWarningIssues.length > 0 && (
             <div className="mt-5">
               <h3 className="text-sm font-semibold text-gray-900">
                 Warnings
                 <span className="ml-2 font-normal text-gray-500">({gmcWarningIssues.length})</span>
               </h3>
+              <p className="mt-1 text-xs text-gray-500">May reduce approval probability</p>
               <ul className="mt-3 space-y-3">
                 {gmcWarningIssues.map((issue) => (
                   <IssueCard key={`${issue.id}-${issue.severity}-warning`} issue={issue} />
@@ -862,8 +1277,23 @@ export default function Report() {
             </div>
           )}
 
-          {gmcFixRecommendations.length > 0 && (
-            <div id={FIX_GUIDE_SECTION_ID} className="mt-5 border-t border-gray-100 pt-5 scroll-mt-24">
+          {auditMode !== 'gmc' && gmcAdvisoryIssues.length > 0 && (
+            <div className="mt-5">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Advisory
+                <span className="ml-2 font-normal text-gray-500">({gmcAdvisoryIssues.length})</span>
+              </h3>
+              <p className="mt-1 text-xs text-gray-500">Recommended optimization — optional for many listings</p>
+              <ul className="mt-3 space-y-3">
+                {gmcAdvisoryIssues.map((issue) => (
+                  <IssueCard key={`${issue.id}-${issue.severity}-advisory`} issue={issue} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {auditMode !== 'gmc' && gmcFixRecommendations.length > 0 && (
+            <div className="mt-5 border-t border-gray-100 pt-5">
               <h3 className="text-sm font-semibold text-gray-900">Fix Recommendations</h3>
               <p className="mt-1 text-xs text-gray-500">
                 Prioritized by Google Shopping disapproval risk.
@@ -875,15 +1305,26 @@ export default function Report() {
           {auditMode === 'gmc' && (
             <GmcConversionCta
               gmcReadiness={gmcReadiness}
-              gmcFixRecommendations={gmcFixRecommendations}
+              gmcFixRecommendations={gmcActionRecommendations}
               usage={auditUsage}
             />
           )}
 
-          {gmcCriticalIssues.length === 0 && gmcWarningIssues.length === 0 && (
+          {auditMode === 'gmc' && complianceActions.length === 0 && (
             <div className="mt-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
               <p className="text-sm font-medium text-green-800">
-                No open GMC blockers detected in the current rule set.
+                No open Merchant Center approval risks detected in the current rule set.
+              </p>
+            </div>
+          )}
+
+          {auditMode !== 'gmc' &&
+            gmcCriticalIssues.length === 0 &&
+            gmcWarningIssues.length === 0 &&
+            gmcAdvisoryIssues.length === 0 && (
+            <div className="mt-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+              <p className="text-sm font-medium text-green-800">
+                No open Merchant Center approval risks detected in the current rule set.
               </p>
             </div>
           )}
@@ -1522,7 +1963,13 @@ export default function Report() {
             </div>
           </div>
           <RuleResultsList rules={trustPolicyRules} />
-          <ModuleIssuesList issues={trustPolicyIssues} />
+          <ModuleIssuesList
+            issues={
+              auditMode === 'gmc'
+                ? trustPolicyIssues.filter((issue) => !canonicalRuleIds.has(issue.id))
+                : trustPolicyIssues
+            }
+          />
 
           <div className="mt-6 border-t border-gray-100 pt-4">
             <h3 className="text-sm font-semibold text-gray-900">Key Pages</h3>

@@ -4,6 +4,8 @@ export const metaBasicRule = {
   name: 'Meta Basic',
   category: 'technical',
   severity: 'medium',
+  /** Excluded from GMC Compliance via modules/technical/rules/resolveTechnicalRules() */
+  seoOverlap: true,
   description:
     'Website should have essential meta tags: title, description, and og:image for SEO and social sharing.',
   check(auditData) {

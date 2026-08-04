@@ -1,6 +1,19 @@
 import { scoreAudit, scoreCategory } from './scorer.js'
 import { scoreModuleResults } from '../modules/_shared/scorer.js'
-import { buildGmcReadinessReport, sortGmcIssuesByDisapprovalPriority } from './gmcReportBuilder.js'
+import {
+  buildGmcReadinessReport,
+  GMC_RISK_TIER_IMPACT,
+  resolveGmcRiskTier,
+  sortGmcIssuesByDisapprovalPriority,
+} from './gmcReportBuilder.js'
+import { analyzeApprovalRisk, buildApprovalRoadmapItems } from './approvalRiskAnalyzer.js'
+import {
+  buildComplianceActions,
+  buildRoadmapFromComplianceActions,
+  buildTopPrioritiesFromComplianceActions,
+  toFixGuideShape,
+} from './complianceActionBuilder.js'
+import { generateFixGuides } from './fixGuideGenerator.js'
 import { buildSeoHealthReport, sortSeoIssuesByPriority } from './seoReportBuilder.js'
 
 const COMPLIANCE_CATEGORIES = ['gmc', 'ads', 'technical', 'trust', 'policy']
@@ -132,6 +145,24 @@ const RULE_GUIDANCE = {
     impact: 'Vague shipping policies increase disputes and may hurt Merchant Center approval.',
     fixSuggestion: 'Include delivery timeframes, regions served, and shipping costs in your shipping policy.',
   },
+  M001: {
+    whyItMatters: 'Google requires merchants to provide transparent business information to establish trust.',
+    impact: 'Weak business identity signals are a common trigger for GMC misrepresentation reviews and suspensions.',
+    fixSuggestion:
+      'Add company name, physical address, phone number and domain email to your Contact or About page.',
+  },
+  M002: {
+    whyItMatters: 'Google evaluates whether store policies are substantive enough for customers to make informed purchases.',
+    impact: 'Thin or vague policies increase misrepresentation risk even when policy pages exist.',
+    fixSuggestion:
+      'Expand refund, shipping, and payment policies with return windows, conditions, shipping costs, delivery times, and accepted payment methods.',
+  },
+  M003: {
+    whyItMatters: 'Google expects product pages to describe what is being sold with enough detail to avoid misleading shoppers.',
+    impact: 'Low-quality product pages can lead to product disapprovals or misrepresentation warnings in Merchant Center.',
+    fixSuggestion:
+      'Add detailed descriptions, multiple images, specifications, materials, sizing, and factual product information on product detail pages.',
+  },
   S001: {
     whyItMatters: 'The title tag is the primary headline shown in search engine results.',
     impact: 'Missing or poorly sized titles reduce click-through rates from organic search.',
@@ -189,6 +220,10 @@ function enrichIssue(rule) {
     whyItMatters: guidance.whyItMatters || rule.description || '',
     impact: guidance.impact || 'May affect compliance readiness for advertising and marketplaces.',
     fixSuggestion: rule.recommendation || guidance.fixSuggestion || '',
+    ...(rule.misrepresentationLevel && { misrepresentationLevel: rule.misrepresentationLevel }),
+    ...(rule.policyQualityReport && { policyQualityReport: rule.policyQualityReport }),
+    ...(rule.productTrustReport && { productTrustReport: rule.productTrustReport }),
+    ...(rule.trustDetails && { trustDetails: rule.trustDetails }),
   }
 }
 
@@ -352,27 +387,68 @@ function buildTopPriorities(allIssues, limit = 5) {
     }))
 }
 
-function buildImprovementRoadmap(allIssues) {
-  const toItem = (issue) => ({
+function buildImprovementRoadmap(allIssues, auditContext = {}, approvalRisk = null) {
+  const approvalItems = buildApprovalRoadmapItems(approvalRisk)
+  if (auditContext.mode === 'gmc' && approvalItems?.length) {
+    const tiered = {
+      critical: approvalItems.filter((item) => item.riskTier === 'critical'),
+      warning: approvalItems.filter((item) => item.riskTier === 'warning'),
+      advisory: approvalItems.filter((item) => item.riskTier === 'advisory'),
+    }
+
+    return {
+      source: 'approvalRisk',
+      prioritized: approvalItems,
+      critical: tiered.critical,
+      warning: tiered.warning,
+      advisory: tiered.advisory,
+      immediate: tiered.critical,
+      recommended: tiered.warning,
+      future: tiered.advisory,
+    }
+  }
+
+  const toItem = (issue, riskTier = null) => ({
     title: issue.title,
     category: issue.categoryLabel || issue.category,
     reason: issue.message,
     expectedImpact: issue.impact,
+    riskTier,
+    riskImpact: riskTier ? GMC_RISK_TIER_IMPACT[riskTier] : undefined,
   })
 
+  if (auditContext.mode === 'gmc') {
+    const tiered = { critical: [], warning: [], advisory: [] }
+
+    for (const issue of allIssues) {
+      const tier = resolveGmcRiskTier(issue)
+      tiered[tier].push(toItem(issue, tier))
+    }
+
+    return {
+      critical: tiered.critical,
+      warning: tiered.warning,
+      advisory: tiered.advisory,
+      immediate: tiered.critical,
+      recommended: tiered.warning,
+      future: tiered.advisory,
+    }
+  }
+
   return {
-    immediate: allIssues.filter((issue) => issue.severity === 'high').map(toItem),
-    recommended: allIssues.filter((issue) => issue.severity === 'medium').map(toItem),
+    immediate: allIssues.filter((issue) => issue.severity === 'high').map((issue) => toItem(issue)),
+    recommended: allIssues.filter((issue) => issue.severity === 'medium').map((issue) => toItem(issue)),
     future: allIssues
       .filter((issue) => issue.severity === 'low' || issue.severity === 'warning')
-      .map(toItem),
+      .map((issue) => toItem(issue)),
   }
 }
 
-function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary, auditContext = {}) {
+function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary, auditContext = {}, complianceActions = []) {
   const healthStatus = buildHealthStatus(scores, issueCounts, auditContext)
   const complianceIssues = allIssues.filter((issue) => issue.category !== 'seo')
   const seoIssues = allIssues.filter((issue) => issue.category === 'seo')
+  const useCanonicalPriorities = auditContext.mode === 'gmc' && complianceActions.length > 0
 
   return {
     headline: buildExecutiveHeadline(healthStatus, issueCounts, auditContext),
@@ -381,7 +457,9 @@ function buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary, aud
     complianceScore: scores.compliance,
     seoScore: scores.seo ?? null,
     seoSummary: buildSeoSummary(scores.seo, seoIssues.length),
-    topPriorities: buildTopPriorities(complianceIssues),
+    topPriorities: useCanonicalPriorities
+      ? buildTopPrioritiesFromComplianceActions(complianceActions)
+      : buildTopPriorities(complianceIssues),
     seoPriorities: buildTopPriorities(seoIssues, 3),
   }
 }
@@ -534,10 +612,49 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
   const gmcReadiness = isCategoryExecuted('gmc', auditContext)
     ? buildGmcReadinessReport({
         gmcIssues: issuesByCategory.gmc,
+        complianceIssues: auditContext.mode === 'gmc' ? complianceIssues : undefined,
         readinessScore: scores.gmc,
         summary: gmcModuleSummary || undefined,
+        useRiskModel: auditContext.mode === 'gmc',
       })
     : null
+
+  if (gmcReadiness && auditContext.mode === 'gmc') {
+    scores.gmc = gmcReadiness.gmcRiskScore
+    gmcReadiness.approvalRisk = analyzeApprovalRisk({
+      ruleResults,
+      complianceIssues,
+      gmcRiskScore: gmcReadiness.gmcRiskScore,
+      auditContext,
+    })
+
+    const { fixGuides: generatedFixGuides } = generateFixGuides({
+      ruleResults,
+      complianceIssues,
+      auditMode: auditContext.mode,
+    })
+
+    const { complianceActions } = buildComplianceActions({
+      ruleResults,
+      complianceIssues,
+      fixGuides: generatedFixGuides,
+      approvalRisk: gmcReadiness.approvalRisk,
+      auditMode: auditContext.mode,
+    })
+
+    gmcReadiness.complianceActions = complianceActions
+    gmcReadiness.fixGuides = complianceActions.map(toFixGuideShape)
+  } else if (gmcReadiness) {
+    gmcReadiness.complianceActions = []
+    gmcReadiness.fixGuides = []
+  }
+
+  const approvalRisk = gmcReadiness?.approvalRisk ?? null
+  const complianceActions = gmcReadiness?.complianceActions ?? []
+  const improvementRoadmap =
+    auditContext.mode === 'gmc' && complianceActions.length > 0
+      ? buildRoadmapFromComplianceActions(complianceActions)
+      : buildImprovementRoadmap(complianceIssues, auditContext, approvalRisk)
 
   const seoHealth = isCategoryExecuted('seo', auditContext)
     ? buildSeoHealthReport({
@@ -549,11 +666,19 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
 
   return {
     quickSummary,
-    executiveSummary: buildExecutiveSummary(scores, issueCounts, allIssues, quickSummary, auditContext),
-    improvementRoadmap: buildImprovementRoadmap(complianceIssues),
+    executiveSummary: buildExecutiveSummary(
+      scores,
+      issueCounts,
+      allIssues,
+      quickSummary,
+      auditContext,
+      complianceActions
+    ),
+    improvementRoadmap,
     coverage: buildSplitCoverage(scores),
     scores,
     gmcReadiness,
+    approvalRisk,
     seoHealth,
     issueCounts: {
       total: issueCounts.total,

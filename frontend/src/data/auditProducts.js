@@ -4,12 +4,12 @@ export const DEFAULT_AUDIT_MODE = 'gmc'
 
 export const GMC_AUDIT_PRODUCT = {
   id: 'gmc',
-  name: 'GMC Compliance Audit',
+  name: 'GMC Approval Risk Audit',
   slug: 'gmc',
   primaryScore: 'gmc',
   paid: true,
   description:
-    'Google Merchant Center readiness with ads, technical, and trust & policy compliance signals.',
+    'Google Merchant Center approval risk analysis with ads, technical, and trust & policy compliance signals.',
   includes: ['gmc', 'ads', 'technical', 'trust', 'policy'],
   landingPath: '/audit/gmc',
   pricing: {
@@ -30,15 +30,20 @@ export const GMC_REPORT_CONVERSION = {
   remainingToday(remaining, limit) {
     return `${remaining} of ${limit} free GMC scans left today`
   },
-  unlimitedAudit: {
-    title: 'Unlimited GMC Audits',
-    description:
-      'Remove daily limits, track readiness over time, and re-scan after every fix.',
+  professionalAudit: {
+    title: 'Professional GMC Audit',
+    description: 'Unlock deeper approval risk analysis and ongoing compliance tracking.',
+    unlockItems: [
+      'Full approval risk analysis',
+      'More compliance checks',
+      'Historical audit tracking',
+      'Detailed fix recommendations',
+    ],
     cta: 'Upgrade to Pro',
   },
   fixGuide: {
     title: 'GMC Fix Guide',
-    description: 'Follow prioritized steps to resolve readiness blockers before Merchant Center review.',
+    description: 'Follow prioritized steps to resolve approval blockers before Merchant Center review.',
     cta: 'View fix recommendations',
     ctaEmpty: 'Fix guide — coming soon',
   },
