@@ -1,6 +1,11 @@
 /**
  * Audit History — lightweight scan summaries for progress tracking.
  * Reuses report storage patterns; persists to local index without DB schema changes.
+ *
+ * On Vercel/serverless, file persistence is disabled automatically — the deployed
+ * bundle under /var/task is read-only, so writes to data/audit-history-index.json
+ * would throw EROFS. History is kept in memory for the current invocation only;
+ * audit reports and comparisons still run, but cross-request history requires DB.
  */
 
 import { mkdir, readFile, writeFile } from 'fs/promises'
@@ -8,15 +13,20 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
+import { canPersistToProjectFiles } from './runtimeEnv.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const HISTORY_INDEX_PATH =
   process.env.AUDIT_HISTORY_INDEX_PATH ||
   join(__dirname, '..', 'data', 'audit-history-index.json')
 
+/** False on Vercel/serverless where /var/task is read-only. */
+const filePersistenceEnabled = canPersistToProjectFiles()
+
 /** @type {Map<string, object[]>} */
 let memoryStore = new Map()
-let useMemoryStore = false
+/** In-memory mode is default on serverless to avoid EROFS on disk writes. */
+let useMemoryStore = !filePersistenceEnabled
 
 const RULE_TITLES = {
   G005: 'Product Identifiers',
@@ -88,7 +98,7 @@ async function ensureHistoryDir() {
 }
 
 async function readHistoryIndex() {
-  if (useMemoryStore) {
+  if (useMemoryStore || !filePersistenceEnabled) {
     const index = {}
     for (const [key, entries] of memoryStore.entries()) {
       index[key] = entries
@@ -109,7 +119,7 @@ async function readHistoryIndex() {
 }
 
 function readHistoryIndexSync() {
-  if (useMemoryStore) {
+  if (useMemoryStore || !filePersistenceEnabled) {
     const index = {}
     for (const [key, entries] of memoryStore.entries()) {
       index[key] = entries
@@ -130,7 +140,7 @@ function readHistoryIndexSync() {
 }
 
 async function writeHistoryIndex(index) {
-  if (useMemoryStore) {
+  if (useMemoryStore || !filePersistenceEnabled) {
     memoryStore = new Map(Object.entries(index))
     return
   }
@@ -140,7 +150,7 @@ async function writeHistoryIndex(index) {
 }
 
 function writeHistoryIndexSync(index) {
-  if (useMemoryStore) {
+  if (useMemoryStore || !filePersistenceEnabled) {
     memoryStore = new Map(Object.entries(index))
     return
   }
@@ -166,6 +176,10 @@ export function useInMemoryAuditHistory(enabled = true) {
   if (enabled) {
     memoryStore = new Map()
   }
+}
+
+export function isAuditHistoryFilePersistenceEnabled() {
+  return filePersistenceEnabled && !useMemoryStore
 }
 
 export function clearAuditHistoryStore() {
