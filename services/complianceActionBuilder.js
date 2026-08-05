@@ -56,19 +56,23 @@ function resolveActionRiskTier(issue, factor, fixGuide) {
 }
 
 function buildEvidence(rule, issue) {
-  const evidence = {
+  const auditEvidence = rule?.evidence || { found: [], missing: [] }
+  const legacyEvidence = {
     message: rule?.message || issue?.message || '',
   }
 
-  if (rule?.trustDetails) evidence.trustDetails = rule.trustDetails
-  if (rule?.policyQualityReport) evidence.policyQualityReport = rule.policyQualityReport
-  if (rule?.productTrustReport) evidence.productTrustReport = rule.productTrustReport
-  if (rule?.policyQuality) evidence.policyQuality = rule.policyQuality
-  if (issue?.trustDetails) evidence.trustDetails = issue.trustDetails
-  if (issue?.policyQualityReport) evidence.policyQualityReport = issue.policyQualityReport
-  if (issue?.productTrustReport) evidence.productTrustReport = issue.productTrustReport
+  if (rule?.trustDetails) legacyEvidence.trustDetails = rule.trustDetails
+  if (rule?.policyQualityReport) legacyEvidence.policyQualityReport = rule.policyQualityReport
+  if (rule?.productTrustReport) legacyEvidence.productTrustReport = rule.productTrustReport
+  if (rule?.policyQuality) legacyEvidence.policyQuality = rule.policyQuality
+  if (issue?.trustDetails) legacyEvidence.trustDetails = issue.trustDetails
+  if (issue?.policyQualityReport) legacyEvidence.policyQualityReport = issue.policyQualityReport
+  if (issue?.productTrustReport) legacyEvidence.productTrustReport = issue.productTrustReport
 
-  return evidence
+  return {
+    ...legacyEvidence,
+    auditEvidence,
+  }
 }
 
 function buildActionFromSources(ruleId, { fixGuide, issue, rule, factor }) {
@@ -91,7 +95,10 @@ function buildActionFromSources(ruleId, { fixGuide, issue, rule, factor }) {
     missing: fixGuide?.missing || [],
     recommendedFix: fixGuide?.recommendedFix || issue?.fixSuggestion || rule?.recommendation || '',
     expectedImpact: fixGuide?.expectedImpact || issue?.impact || factor?.impact || '',
+    impactPrediction: fixGuide?.impactPrediction || null,
+    fixAssistant: fixGuide?.fixAssistant || null,
     evidence: buildEvidence(rule, issue),
+    auditEvidence: rule?.evidence || { found: [], missing: [] },
   }
 }
 
@@ -154,6 +161,9 @@ export function buildComplianceActions({
   const complianceActions = []
 
   for (const ruleId of ruleIds) {
+    const rule = rulesById.get(ruleId)
+    if (rule?.passed === true && (ruleId === 'M003' || ruleId === 'M002')) continue
+
     const action = buildActionFromSources(ruleId, {
       fixGuide: guidesById.get(ruleId),
       issue: issuesById.get(ruleId),
@@ -238,5 +248,7 @@ export function toFixGuideShape(action) {
     missing: action.missing,
     recommendedFix: action.recommendedFix,
     expectedImpact: action.expectedImpact,
+    impactPrediction: action.impactPrediction || null,
+    fixAssistant: action.fixAssistant || null,
   }
 }

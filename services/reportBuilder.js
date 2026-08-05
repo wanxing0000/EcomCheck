@@ -14,7 +14,15 @@ import {
   toFixGuideShape,
 } from './complianceActionBuilder.js'
 import { generateFixGuides } from './fixGuideGenerator.js'
+import { buildProductComplianceActions } from './productComplianceActionBuilder.js'
+import { buildProductRiskSummary } from './productRiskSummary.js'
 import { buildSeoHealthReport, sortSeoIssuesByPriority } from './seoReportBuilder.js'
+import {
+  buildAuditSummary,
+  getPreviousAuditSummarySync,
+  saveAuditHistorySummarySync,
+} from './auditHistory.js'
+import { compareAuditReports } from './auditComparison.js'
 
 const COMPLIANCE_CATEGORIES = ['gmc', 'ads', 'technical', 'trust', 'policy']
 
@@ -632,6 +640,8 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
       ruleResults,
       complianceIssues,
       auditMode: auditContext.mode,
+      gmcRiskScore: gmcReadiness.gmcRiskScore,
+      approvalRisk: gmcReadiness.approvalRisk,
     })
 
     const { complianceActions } = buildComplianceActions({
@@ -664,6 +674,61 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
       })
     : null
 
+  let previousAuditComparison = null
+  let auditSummary = null
+
+  if (auditContext.website) {
+    auditSummary = buildAuditSummary({
+      id: auditContext.auditHistoryId,
+      website: auditContext.website,
+      auditMode: auditContext.mode || 'gmc',
+      professionalReport: {
+        scores,
+        gmcReadiness,
+        approvalRisk,
+        issueCounts,
+      },
+      ruleResults,
+    })
+
+    const previousSummary = auditContext.previousAuditSummary ?? null
+    const resolvedPrevious =
+      previousSummary ||
+      (auditContext.skipHistoryLookup
+        ? null
+        : getPreviousAuditSummarySync(auditContext.website, {
+            auditMode: auditContext.mode || 'gmc',
+            excludeId: auditSummary.id,
+          }))
+
+    if (resolvedPrevious) {
+      previousAuditComparison = compareAuditReports(resolvedPrevious, auditSummary)
+    }
+
+    if (auditContext.saveAuditHistory !== false) {
+      saveAuditHistorySummarySync(auditSummary)
+    }
+  }
+
+  let enrichedProductCompliance = auditContext.productCompliance || null
+  let productComplianceActions = []
+  let productRiskSummary = null
+
+  if (auditContext.productCompliance && auditContext.mode === 'gmc') {
+    const builtProductActions = buildProductComplianceActions({
+      productCompliance: auditContext.productCompliance,
+      productAnalysis: auditContext.productAnalysis,
+      gmcRiskScore: gmcReadiness?.gmcRiskScore ?? null,
+      approvalRisk,
+    })
+    enrichedProductCompliance = builtProductActions.productCompliance
+    productComplianceActions = builtProductActions.productComplianceActions
+    productRiskSummary = buildProductRiskSummary(enrichedProductCompliance, {
+      productAnalysis: auditContext.productAnalysis,
+      productDiscovery: auditContext.productDiscovery,
+    })
+  }
+
   return {
     quickSummary,
     executiveSummary: buildExecutiveSummary(
@@ -680,6 +745,8 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
     gmcReadiness,
     approvalRisk,
     seoHealth,
+    auditSummary,
+    previousAuditComparison,
     issueCounts: {
       total: issueCounts.total,
       complianceTotal: issueCounts.complianceTotal,
@@ -691,6 +758,9 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
     },
     issues: allIssues,
     issuesByCategory,
+    productCompliance: enrichedProductCompliance,
+    productComplianceActions,
+    productRiskSummary,
   }
 }
 

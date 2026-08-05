@@ -5,6 +5,15 @@ import Card from '../components/Card'
 import ApprovalRiskSummary from '../components/ApprovalRiskSummary'
 import GmcConversionCta, { FIX_GUIDE_SECTION_ID } from '../components/GmcConversionCta'
 import ReportSaveCta from '../components/ReportSaveCta'
+import {
+  FixAvailabilitySummary,
+  FixCategoryOverview,
+  FixPreviewCard,
+} from '../components/FixAssistantUx.jsx'
+import DetectedProductPagesSection from '../components/DetectedProductPagesSection.jsx'
+import ProductPageAnalyzerSection from '../components/ProductPageAnalyzerSection.jsx'
+import ProductComplianceIssuesSection from '../components/ProductComplianceIssuesSection.jsx'
+import ProductRiskSummary from '../components/ProductRiskSummary.jsx'
 import { trackViewReport } from '../lib/analytics.js'
 import {
   buildComplianceRiskAreas,
@@ -348,6 +357,160 @@ function FixGuideTagList({ label, items, tone = 'neutral' }) {
   )
 }
 
+function getEvidencePageTypeLabel(pageType) {
+  switch (pageType) {
+    case 'paymentPolicy':
+      return 'Payment Policy'
+    case 'shippingPolicy':
+      return 'Shipping Policy'
+    case 'refundPolicy':
+      return 'Refund Policy'
+    case 'productPage':
+      return 'Product Page'
+    default:
+      return pageType || 'Page'
+  }
+}
+
+function WhyWeDetectedThis({ auditEvidence }) {
+  const found = auditEvidence?.found || []
+  if (found.length === 0) return null
+
+  return (
+    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Why we detected this</p>
+      <p className="mt-1 text-xs text-gray-500">Detected Evidence</p>
+      <ul className="mt-3 space-y-3">
+        {found.slice(0, 3).map((item, index) => (
+          <li key={`${item.text}-${index}`} className="border-l-2 border-brand-300 pl-3">
+            <blockquote className="text-sm italic text-gray-800">&ldquo;{item.text}&rdquo;</blockquote>
+            <p className="mt-1 text-xs text-gray-500">
+              Source: {getEvidencePageTypeLabel(item.pageType)}
+              {item.source ? ` · ${item.source}` : ''}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function formatRiskLevelLabel(level) {
+  if (!level) return 'Unknown'
+  return level.charAt(0).toUpperCase() + level.slice(1)
+}
+
+function AuditProgressSection({ comparison }) {
+  if (!comparison) return null
+
+  const gmcDelta = comparison.scoreChange?.gmc
+  const improvementPoints =
+    typeof gmcDelta === 'string' ? gmcDelta.replace('+', '') : null
+
+  return (
+    <Card className="mt-6 border-emerald-100 bg-gradient-to-r from-emerald-50/70 to-white">
+      <h2 className="text-lg font-semibold text-gray-900">Audit Progress</h2>
+      <p className="mt-1 text-sm text-gray-500">Compared with your previous scan of this website.</p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Previous Scan</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">
+            {comparison.previous?.gmcRiskScore ?? '—'}/100
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            {formatRiskLevelLabel(comparison.previous?.approvalRisk)} Risk
+          </p>
+        </div>
+        <div className="rounded-xl border border-emerald-200 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Current Scan</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">
+            {comparison.current?.gmcRiskScore ?? '—'}/100
+          </p>
+          <p className="mt-1 text-sm text-gray-600">
+            {formatRiskLevelLabel(comparison.current?.approvalRisk)} Risk
+          </p>
+        </div>
+      </div>
+
+      {improvementPoints && (
+        <p className="mt-4 text-sm font-medium text-emerald-800">
+          Improvement: +{improvementPoints} points
+        </p>
+      )}
+
+      {comparison.summary && (
+        <p className="mt-2 text-sm text-gray-700">{comparison.summary}</p>
+      )}
+
+      {comparison.resolvedRuleDetails?.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Resolved</p>
+          <ul className="mt-2 space-y-1">
+            {comparison.resolvedRuleDetails.map((item) => (
+              <li key={item.ruleId} className="text-sm text-emerald-800">
+                ✓ {item.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {comparison.remainingIssueDetails?.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Remaining</p>
+          <ul className="mt-2 space-y-1">
+            {comparison.remainingIssueDetails.map((item) => (
+              <li key={item.ruleId} className="text-sm text-amber-800">
+                ⚠ {item.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {comparison.newIssueDetails?.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">New Issues</p>
+          <ul className="mt-2 space-y-1">
+            {comparison.newIssueDetails.map((item) => (
+              <li key={item.ruleId} className="text-sm text-red-700">
+                ✕ {item.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function FixImpactBlock({ impactPrediction }) {
+  if (!impactPrediction?.estimatedScoreGain) return null
+
+  const { estimatedScoreGain, riskBefore, riskAfter, impactLevel } = impactPrediction
+  const scoreText = `+${estimatedScoreGain.min} ~ +${estimatedScoreGain.max} points`
+  const riskChanged = riskBefore && riskAfter && riskBefore !== riskAfter
+
+  return (
+    <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Expected Improvement</p>
+      <p className="mt-1 text-sm font-semibold text-emerald-900">{scoreText}</p>
+      {riskChanged && (
+        <p className="mt-2 text-sm text-gray-700">
+          <span className="font-medium text-gray-800">Approval Risk: </span>
+          {formatRiskLevelLabel(riskBefore)} → {formatRiskLevelLabel(riskAfter)}
+        </p>
+      )}
+      {impactLevel && (
+        <p className="mt-1 text-xs text-emerald-800">
+          Impact level: {formatRiskLevelLabel(impactLevel)}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function FixGuideCard({ action }) {
   return (
     <li className="rounded-xl border border-brand-100 bg-white px-4 py-4 shadow-sm">
@@ -363,7 +526,7 @@ function FixGuideCard({ action }) {
 
       {action.problem && (
         <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Problem</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Issue</p>
           <p className="mt-1 text-sm text-gray-700">{action.problem}</p>
         </div>
       )}
@@ -375,12 +538,18 @@ function FixGuideCard({ action }) {
         </div>
       )}
 
+      <WhyWeDetectedThis auditEvidence={action.auditEvidence || action.evidence?.auditEvidence} />
+
       {action.recommendedFix && (
         <div className="mt-4 rounded-lg border border-brand-100 bg-brand-50/50 px-3 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Recommended Fix</p>
           <p className="mt-1 text-sm text-gray-800">{action.recommendedFix}</p>
         </div>
       )}
+
+      <FixImpactBlock impactPrediction={action.impactPrediction} />
+
+      <FixPreviewCard action={action} />
 
       {action.expectedImpact && (
         <p className="mt-3 text-sm text-gray-600">
@@ -444,6 +613,9 @@ function FixRecommendationsSection({ complianceActions }) {
         <p className="mt-1 text-sm text-gray-500">
           Action items to improve Merchant Center approval readiness.
         </p>
+
+        <FixAvailabilitySummary complianceActions={sortedActions} className="mt-5" />
+        <FixCategoryOverview complianceActions={sortedActions} />
 
         {FIX_RECOMMENDATION_TIERS.map((tier) => {
           const tierActions = sortedActions.filter((action) => action.riskTier === tier.key)
@@ -704,7 +876,7 @@ export default function Report() {
 
   if (!url || !crawlResult) return null
 
-  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, gmc, modules, detectionSources, report } = crawlResult
+  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, productDiscovery, productAnalysis, productCompliance, productRiskSummary, gmc, modules, detectionSources, report } = crawlResult
 
   const adsRules = rules?.filter((r) => r.category === 'ads') ?? []
   const seoRules = rules?.filter((r) => r.category === 'seo') ?? []
@@ -785,12 +957,14 @@ export default function Report() {
   const coverageEntries = getCoverageEntries(professionalReport)
   const improvementRoadmap = professionalReport.improvementRoadmap
   const approvalRisk = gmcReadiness?.approvalRisk ?? professionalReport.approvalRisk
+  const previousAuditComparison = professionalReport.previousAuditComparison ?? null
   const complianceActions =
     gmcReadiness?.complianceActions ??
     (gmcReadiness?.fixGuides || []).map((guide) => ({
       ...guide,
       riskTier: guide.priority <= 10 ? 'critical' : guide.priority <= 40 ? 'warning' : 'advisory',
-      evidence: { message: guide.problem || '' },
+      auditEvidence: guide.auditEvidence || { found: [], missing: [] },
+      evidence: { message: guide.problem || '', auditEvidence: guide.auditEvidence || { found: [], missing: [] } },
     }))
   const canonicalRuleIds = new Set(complianceActions.map((action) => action.ruleId))
   const gmcActionRecommendations = complianceActions.map((action, index) => ({
@@ -909,6 +1083,20 @@ export default function Report() {
           </div>
         )}
       </div>
+
+      {auditMode === 'gmc' && previousAuditComparison && (
+        <AuditProgressSection comparison={previousAuditComparison} />
+      )}
+
+      {auditMode === 'gmc' && complianceActions.length > 0 && (
+        <Card className="mt-6 border-brand-100">
+          <h2 className="text-lg font-semibold text-gray-900">Fix Assistant Overview</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            How many issues include copy-ready AI fix drafts in this report.
+          </p>
+          <FixAvailabilitySummary complianceActions={complianceActions} className="mt-4" />
+        </Card>
+      )}
 
       {/* Executive Summary */}
       {executiveSummary && (
@@ -1604,6 +1792,27 @@ export default function Report() {
             </div>
           )}
         </Card>
+      )}
+
+      {/* Detected Product Pages */}
+      {(showGmc || showAds) && productDiscovery?.productPages?.length > 0 && (
+        <DetectedProductPagesSection productDiscovery={productDiscovery} />
+      )}
+
+      {(showGmc || showAds) && productAnalysis?.products?.length > 0 && (
+        <ProductPageAnalyzerSection productAnalysis={productAnalysis} />
+      )}
+
+      {(showGmc || showAds) && (productRiskSummary || productCompliance?.products?.length > 0) && (
+        <ProductRiskSummary
+          productCompliance={productCompliance}
+          productAnalysis={productAnalysis}
+          productRiskSummary={productRiskSummary ?? report?.productRiskSummary}
+        />
+      )}
+
+      {(showGmc || showAds) && productCompliance?.products?.some((product) => product.issues?.length > 0) && (
+        <ProductComplianceIssuesSection productCompliance={productCompliance} />
       )}
 
       {/* Product Pricing Analysis */}

@@ -199,6 +199,7 @@ export async function scanProductPages(links, options = {}) {
           trustContent,
           schemas: (products || []).map((p) => ({
             name: p.name,
+            description: p.description || null,
             fields: p.fields,
             values: p.values,
             missingRequired: p.missingRequired,

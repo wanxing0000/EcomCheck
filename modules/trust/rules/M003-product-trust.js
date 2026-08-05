@@ -1,6 +1,8 @@
 import {
   analyzeProductPagesTrust,
-  misrepresentationLevelToSeverity,
+  PRODUCT_TRUST_PASS_SCORE,
+  resolveProductTrustFailureSeverity,
+  resolveProductTrustMisrepresentationLevel,
 } from './_helpers.js'
 
 /** @type {import('../../_shared/types.js').Rule} */
@@ -25,7 +27,7 @@ export const productTrustSignalsRule = {
       }
     }
 
-    if (report.riskLevel === 'low') {
+    if (report.score >= PRODUCT_TRUST_PASS_SCORE) {
       return {
         passed: true,
         message: report.summaryMessage,
@@ -34,12 +36,20 @@ export const productTrustSignalsRule = {
       }
     }
 
-    const severity = misrepresentationLevelToSeverity(report.riskLevel)
+    const gapClassification = report.gapClassification || {
+      optimizationMissing: [],
+      riskMissing: [],
+    }
+    const severity = resolveProductTrustFailureSeverity(gapClassification)
+    const misrepresentationLevel = resolveProductTrustMisrepresentationLevel(
+      gapClassification,
+      report.score
+    )
 
     return {
       passed: false,
       severity,
-      misrepresentationLevel: report.riskLevel,
+      misrepresentationLevel,
       message: report.summaryMessage,
       recommendation: report.summaryRecommendation,
       productTrustReport: report,

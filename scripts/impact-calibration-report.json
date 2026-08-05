@@ -1,0 +1,944 @@
+{
+  "generatedAt": "2026-08-05T03:17:54.226Z",
+  "totals": {
+    "cases": 5,
+    "comparisons": 5,
+    "inRange": 2,
+    "overPredicted": 0,
+    "underPredicted": 0
+  },
+  "calibrationFindings": [
+    {
+      "ruleId": "G008",
+      "finding": "calibrated",
+      "samples": 1,
+      "recommendation": "G008 gain range appears reasonable in current fixtures."
+    },
+    {
+      "ruleId": "G010",
+      "finding": "distorted_baseline",
+      "samples": 1,
+      "recommendation": "G010 compared against collapsed baseline score (<25) — exclude from gain tuning."
+    },
+    {
+      "ruleId": "G010",
+      "finding": "calibrated",
+      "samples": 1,
+      "recommendation": "G010 gain range appears reasonable in current fixtures."
+    },
+    {
+      "ruleId": "M002",
+      "finding": "distorted_baseline",
+      "samples": 1,
+      "recommendation": "M002 compared against collapsed baseline score (<25) — exclude from gain tuning."
+    },
+    {
+      "ruleId": "M003",
+      "finding": "distorted_baseline",
+      "samples": 1,
+      "recommendation": "M003 compared against collapsed baseline score (<25) — exclude from gain tuning."
+    }
+  ],
+  "gainAdjustments": [],
+  "comparisons": [
+    {
+      "ruleId": "G008",
+      "predictedGain": {
+        "min": 3,
+        "max": 8
+      },
+      "actualChange": 5,
+      "accuracy": "in_range",
+      "confidence": "high",
+      "riskAccuracy": "unchanged_correct"
+    },
+    {
+      "ruleId": "G010",
+      "predictedGain": {
+        "min": 2,
+        "max": 5
+      },
+      "actualChange": 5,
+      "accuracy": "in_range",
+      "confidence": "high",
+      "riskAccuracy": "unchanged_correct"
+    },
+    {
+      "ruleId": "M002",
+      "predictedGain": {
+        "min": 10,
+        "max": 20
+      },
+      "actualChange": 83,
+      "accuracy": "distorted_baseline",
+      "confidence": "low",
+      "riskAccuracy": "exact_match"
+    },
+    {
+      "ruleId": "G010",
+      "predictedGain": {
+        "min": 10,
+        "max": 20
+      },
+      "actualChange": 50,
+      "accuracy": "distorted_baseline",
+      "confidence": "low",
+      "riskAccuracy": "exact_match"
+    },
+    {
+      "ruleId": "M003",
+      "predictedGain": {
+        "min": 8,
+        "max": 15
+      },
+      "actualChange": 83,
+      "accuracy": "distorted_baseline",
+      "confidence": "low",
+      "riskAccuracy": "exact_match"
+    }
+  ],
+  "cases": [
+    {
+      "name": "Normal website",
+      "url": "fixture:impact-normal",
+      "notes": "Baseline healthy store — predictions should stay modest or absent.",
+      "before": {
+        "gmcRiskScore": 83,
+        "approvalRisk": {
+          "level": "medium"
+        },
+        "fixGuides": [
+          {
+            "ruleId": "M001",
+            "title": "Business Identity",
+            "missing": [
+              "Company name"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 83,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 93,
+                  "max": 100
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G005",
+            "title": "Product Identifiers",
+            "missing": [
+              "Brand",
+              "SKU",
+              "GTIN",
+              "MPN"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 1,
+                "max": 3
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "low",
+              "before": {
+                "score": 83,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 84,
+                  "max": 86
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "A002",
+            "title": "Google Tag Detection",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K002",
+            "title": "Robots.txt",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K003",
+            "title": "Sitemap",
+            "missing": [],
+            "impactPrediction": null
+          }
+        ]
+      },
+      "simulations": []
+    },
+    {
+      "name": "Missing payment methods website",
+      "url": "fixture:impact-missing-payment",
+      "notes": "G008 paymentMethods missing — calibrate +3~8 gain and medium→low risk.",
+      "before": {
+        "gmcRiskScore": 78,
+        "approvalRisk": {
+          "level": "medium"
+        },
+        "fixGuides": [
+          {
+            "ruleId": "M001",
+            "title": "Business Identity",
+            "missing": [
+              "Company name"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 88,
+                  "max": 98
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "M002",
+            "title": "Policy Quality",
+            "missing": [
+              "Refund Policy: Refund Keywords",
+              "Payment Policy: Payment Methods"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 88,
+                  "max": 98
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G008",
+            "title": "Payment Information",
+            "missing": [
+              "Payment Methods"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 3,
+                "max": 8
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "medium",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 81,
+                  "max": 86
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G005",
+            "title": "Product Identifiers",
+            "missing": [
+              "Brand",
+              "SKU",
+              "GTIN",
+              "MPN"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 1,
+                "max": 3
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "low",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 79,
+                  "max": 81
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "A002",
+            "title": "Google Tag Detection",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K002",
+            "title": "Robots.txt",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K003",
+            "title": "Sitemap",
+            "missing": [],
+            "impactPrediction": null
+          }
+        ]
+      },
+      "simulations": [
+        {
+          "ruleId": "G008",
+          "predictedGain": {
+            "min": 3,
+            "max": 8
+          },
+          "after": {
+            "estimatedScore": 83,
+            "estimatedRisk": "medium"
+          },
+          "comparison": {
+            "ruleId": "G008",
+            "predictedGain": {
+              "min": 3,
+              "max": 8
+            },
+            "actualChange": 5,
+            "accuracy": "in_range",
+            "confidence": "high",
+            "baselineDistorted": false,
+            "riskBefore": "medium",
+            "riskAfter": "medium",
+            "predictedRiskBefore": "medium",
+            "predictedRiskAfter": "medium",
+            "riskAccuracy": "unchanged_correct"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Missing shipping cost website",
+      "url": "fixture:impact-missing-shipping-cost",
+      "notes": "G010 shipping cost missing — verify gain is not over-estimated.",
+      "before": {
+        "gmcRiskScore": 78,
+        "approvalRisk": {
+          "level": "medium"
+        },
+        "fixGuides": [
+          {
+            "ruleId": "M001",
+            "title": "Business Identity",
+            "missing": [
+              "Company name"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 88,
+                  "max": 98
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "M002",
+            "title": "Policy Quality",
+            "missing": [
+              "Refund Policy: Refund Keywords",
+              "Shipping Policy: Shipping Costs"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 88,
+                  "max": 98
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G010",
+            "title": "Shipping Policy",
+            "missing": [
+              "Shipping Costs"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 2,
+                "max": 5
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "medium",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 80,
+                  "max": 83
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G005",
+            "title": "Product Identifiers",
+            "missing": [
+              "Brand",
+              "SKU",
+              "GTIN",
+              "MPN"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 1,
+                "max": 3
+              },
+              "riskBefore": "medium",
+              "riskAfter": "medium",
+              "impactLevel": "low",
+              "before": {
+                "score": 78,
+                "approvalRisk": "medium"
+              },
+              "after": {
+                "score": {
+                  "min": 79,
+                  "max": 81
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "A002",
+            "title": "Google Tag Detection",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K002",
+            "title": "Robots.txt",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K003",
+            "title": "Sitemap",
+            "missing": [],
+            "impactPrediction": null
+          }
+        ]
+      },
+      "simulations": [
+        {
+          "ruleId": "G010",
+          "predictedGain": {
+            "min": 2,
+            "max": 5
+          },
+          "after": {
+            "estimatedScore": 83,
+            "estimatedRisk": "medium"
+          },
+          "comparison": {
+            "ruleId": "G010",
+            "predictedGain": {
+              "min": 2,
+              "max": 5
+            },
+            "actualChange": 5,
+            "accuracy": "in_range",
+            "confidence": "high",
+            "baselineDistorted": false,
+            "riskBefore": "medium",
+            "riskAfter": "medium",
+            "predictedRiskBefore": "medium",
+            "predictedRiskAfter": "medium",
+            "riskAccuracy": "unchanged_correct"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Missing policies website",
+      "url": "fixture:impact-missing-policies",
+      "notes": "Missing shipping policy page — calibrate high-impact policy fixes.",
+      "before": {
+        "gmcRiskScore": 0,
+        "approvalRisk": {
+          "level": "high"
+        },
+        "fixGuides": [
+          {
+            "ruleId": "M001",
+            "title": "Business Identity",
+            "missing": [
+              "Company name"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "high",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 10,
+                  "max": 20
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "M002",
+            "title": "Policy Quality",
+            "missing": [
+              "Refund Policy: Sufficient Content Length",
+              "Refund Policy: Refund Keywords",
+              "Refund Policy: Return Keywords",
+              "Refund Policy: Return Conditions",
+              "Refund Policy: Contact Information",
+              "Shipping Policy page",
+              "Shipping Policy: Policy Page"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "high",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 10,
+                  "max": 20
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G003",
+            "title": "Return Policy",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "G004",
+            "title": "Shipping Information",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "G010",
+            "title": "Shipping Policy",
+            "missing": [
+              "Shipping Policy Page"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "high",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 10,
+                  "max": 20
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "P003",
+            "title": "Shipping Policy",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "G005",
+            "title": "Product Identifiers",
+            "missing": [
+              "Brand",
+              "SKU",
+              "GTIN",
+              "MPN"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 1,
+                "max": 3
+              },
+              "riskBefore": "high",
+              "riskAfter": "high",
+              "impactLevel": "low",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 1,
+                  "max": 3
+                },
+                "approvalRisk": "high"
+              }
+            }
+          },
+          {
+            "ruleId": "P001",
+            "title": "Privacy Policy",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "A002",
+            "title": "Google Tag Detection",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K002",
+            "title": "Robots.txt",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K003",
+            "title": "Sitemap",
+            "missing": [],
+            "impactPrediction": null
+          }
+        ]
+      },
+      "simulations": [
+        {
+          "ruleId": "M002",
+          "predictedGain": {
+            "min": 10,
+            "max": 20
+          },
+          "after": {
+            "estimatedScore": 83,
+            "estimatedRisk": "medium"
+          },
+          "comparison": {
+            "ruleId": "M002",
+            "predictedGain": {
+              "min": 10,
+              "max": 20
+            },
+            "actualChange": 83,
+            "accuracy": "distorted_baseline",
+            "confidence": "low",
+            "baselineDistorted": true,
+            "riskBefore": "high",
+            "riskAfter": "medium",
+            "predictedRiskBefore": "high",
+            "predictedRiskAfter": "medium",
+            "riskAccuracy": "exact_match"
+          }
+        },
+        {
+          "ruleId": "G010",
+          "predictedGain": {
+            "min": 10,
+            "max": 20
+          },
+          "after": {
+            "estimatedScore": 50,
+            "estimatedRisk": "medium"
+          },
+          "comparison": {
+            "ruleId": "G010",
+            "predictedGain": {
+              "min": 10,
+              "max": 20
+            },
+            "actualChange": 50,
+            "accuracy": "distorted_baseline",
+            "confidence": "low",
+            "baselineDistorted": true,
+            "riskBefore": "high",
+            "riskAfter": "medium",
+            "predictedRiskBefore": "high",
+            "predictedRiskAfter": "medium",
+            "riskAccuracy": "exact_match"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Low product trust website",
+      "url": "fixture:impact-low-product-trust",
+      "notes": "Product trust risk gaps — verify approval risk change after fix.",
+      "before": {
+        "gmcRiskScore": 0,
+        "approvalRisk": {
+          "level": "high"
+        },
+        "fixGuides": [
+          {
+            "ruleId": "M001",
+            "title": "Business Identity",
+            "missing": [
+              "Company name"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 10,
+                "max": 20
+              },
+              "riskBefore": "high",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 10,
+                  "max": 20
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "M003",
+            "title": "Product Trust Signals",
+            "missing": [
+              "Product Description",
+              "Specifications",
+              "Factual Attributes (material, Size, Dimensions)",
+              "Product Images",
+              "Main Product Image",
+              "Brand",
+              "Material",
+              "Size",
+              "Color",
+              "Model",
+              "Sku",
+              "Customer Reviews Or Ratings",
+              "Guarantee Or Warranty Information",
+              "Contact Or Order Information"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 8,
+                "max": 15
+              },
+              "riskBefore": "high",
+              "riskAfter": "medium",
+              "impactLevel": "high",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 8,
+                  "max": 15
+                },
+                "approvalRisk": "medium"
+              }
+            }
+          },
+          {
+            "ruleId": "G001",
+            "title": "Product Price",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "G002",
+            "title": "Product Availability",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "G009",
+            "title": "Product Purchase Flow",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "G005",
+            "title": "Product Identifiers",
+            "missing": [
+              "Brand",
+              "SKU",
+              "GTIN",
+              "MPN"
+            ],
+            "impactPrediction": {
+              "estimatedScoreGain": {
+                "min": 1,
+                "max": 3
+              },
+              "riskBefore": "high",
+              "riskAfter": "high",
+              "impactLevel": "low",
+              "before": {
+                "score": 0,
+                "approvalRisk": "high"
+              },
+              "after": {
+                "score": {
+                  "min": 1,
+                  "max": 3
+                },
+                "approvalRisk": "high"
+              }
+            }
+          },
+          {
+            "ruleId": "A002",
+            "title": "Google Tag Detection",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "A003",
+            "title": "Product JSON-LD Detection",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K002",
+            "title": "Robots.txt",
+            "missing": [],
+            "impactPrediction": null
+          },
+          {
+            "ruleId": "K003",
+            "title": "Sitemap",
+            "missing": [],
+            "impactPrediction": null
+          }
+        ]
+      },
+      "simulations": [
+        {
+          "ruleId": "M003",
+          "predictedGain": {
+            "min": 8,
+            "max": 15
+          },
+          "after": {
+            "estimatedScore": 83,
+            "estimatedRisk": "medium"
+          },
+          "comparison": {
+            "ruleId": "M003",
+            "predictedGain": {
+              "min": 8,
+              "max": 15
+            },
+            "actualChange": 83,
+            "accuracy": "distorted_baseline",
+            "confidence": "low",
+            "baselineDistorted": true,
+            "riskBefore": "high",
+            "riskAfter": "medium",
+            "predictedRiskBefore": "high",
+            "predictedRiskAfter": "medium",
+            "riskAccuracy": "exact_match"
+          }
+        }
+      ]
+    }
+  ]
+}

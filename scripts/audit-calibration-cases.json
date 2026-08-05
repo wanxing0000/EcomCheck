@@ -1,0 +1,93 @@
+[
+  {
+    "name": "Fixture: Visa + Mastercard + PayPal payment page",
+    "url": "fixture:payment-visa-mastercard-paypal",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "G008 should detect Visa, Mastercard, PayPal. Must not flag missing payment methods."
+  },
+  {
+    "name": "Fixture: Apple Pay + Google Pay payment page",
+    "url": "fixture:payment-apple-google-pay",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "G008 should detect Apple Pay and Google Pay without false missing payment methods."
+  },
+  {
+    "name": "Fixture: Free standard shipping policy",
+    "url": "fixture:shipping-free-standard",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "G010 must treat 'Free Standard Shipping' as shipping cost coverage, not missing shipping costs."
+  },
+  {
+    "name": "Fixture: Flat rate shipping policy",
+    "url": "fixture:shipping-flat-rate",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "G010 should detect flat rate shipping terms."
+  },
+  {
+    "name": "Fixture: Calculated at checkout shipping",
+    "url": "fixture:shipping-calculated-checkout",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "G010 should detect calculated at checkout shipping cost language."
+  },
+  {
+    "name": "Fixture: Shipping included policy",
+    "url": "fixture:shipping-included",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "G010 should accept shipping included as cost coverage."
+  },
+  {
+    "name": "Fixture: Strong store policies (M002)",
+    "url": "fixture:m002-strong-policies",
+    "expectedRisk": "low",
+    "expectedScoreRange": "75-100",
+    "notes": "M002 should not over-penalize when refund, shipping, and payment policies are substantive."
+  },
+  {
+    "name": "Fixture: Normal product page trust (M003)",
+    "url": "fixture:m003-normal-product",
+    "expectedRisk": "low",
+    "expectedScoreRange": "70-100",
+    "notes": "M003 must not classify a normal product page with images, description, attributes, material, and size as high risk."
+  },
+  {
+    "name": "Fixture: No payment information (negative control)",
+    "url": "fixture:payment-none",
+    "expectedRisk": "medium",
+    "expectedScoreRange": "0-70",
+    "notes": "G008 should remain failed when no payment methods are present."
+  },
+  {
+    "name": "Live: Cosmic Horror Shop",
+    "url": "https://cosmichorrorshop.com",
+    "expectedRisk": "low",
+    "expectedScoreRange": "60-100",
+    "notes": "Real Shopify store calibration — watch G008/G010/M002/M003 false positives."
+  },
+  {
+    "name": "Live: Narla's Fable and Fur Candles",
+    "url": "https://narlasfableandfurcandles.co.uk",
+    "expectedRisk": "low",
+    "expectedScoreRange": "60-100",
+    "notes": "Real WooCommerce/WordPress store calibration."
+  },
+  {
+    "name": "Live: Founders Parts",
+    "url": "https://foundersparts.com",
+    "expectedRisk": "medium",
+    "expectedScoreRange": "40-90",
+    "notes": "Real catalog store — product trust and policy depth calibration."
+  },
+  {
+    "name": "Live: Bshive Design",
+    "url": "https://bshivedesign.co.uk",
+    "expectedRisk": "low",
+    "expectedScoreRange": "60-100",
+    "notes": "Real design store — payment/shipping policy wording calibration."
+  }
+]

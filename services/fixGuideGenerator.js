@@ -3,7 +3,12 @@
  * Does not modify rule pass/fail outcomes.
  */
 
-const SUPPORTED_RULE_IDS = new Set(['G005', 'G008', 'G010', 'M001', 'M002', 'M003'])
+import { predictFixImpact, toFixGuideImpactPrediction } from './fixImpactPredictor.js'
+import { generateFixAssistant } from './fixAssistantGenerator.js'
+
+const SUPPORTED_RULE_IDS = new Set(['G005', 'G008', 'G010', 'G011', 'G012', 'M001', 'M002', 'M003', 'M004', 'M005', 'T001', 'P001', 'P002', 'P003'])
+
+export const PRODUCT_FIX_RULE_IDS = new Set(['G011', 'G012', 'M004', 'M005'])
 
 /** Lower number = higher fix priority */
 const FIX_GUIDE_PRIORITY = {
@@ -12,7 +17,15 @@ const FIX_GUIDE_PRIORITY = {
   M003: 7,
   G008: 30,
   G010: 32,
+  T001: 35,
+  P002: 36,
+  P003: 37,
+  P001: 38,
   G005: 55,
+  G011: 52,
+  G012: 54,
+  M004: 8,
+  M005: 9,
 }
 
 const IDENTITY_SIGNAL_LABELS = {
@@ -83,6 +96,78 @@ const FIX_TEMPLATES = {
     recommendedFix:
       'Add detailed specifications, product attributes and factual descriptions.',
     expectedImpact: 'May reduce product disapprovals and misrepresentation warnings in Merchant Center.',
+  },
+  G011: {
+    title: 'Product Schema Completeness',
+    problem: 'Product structured data is incomplete on product detail pages.',
+    whyItMatters:
+      'Complete Product JSON-LD helps Google understand catalog items and match Shopping listings.',
+    recommendedFix:
+      'Add missing Product schema fields such as name, image, description, identifiers, and offers.',
+    expectedImpact: 'May improve product feed validation and Shopping ad match quality.',
+  },
+  G012: {
+    title: 'Product Identifier Quality',
+    problem: 'Product identifiers are missing on analyzed product pages.',
+    whyItMatters:
+      'Google uses brand, SKU, GTIN, and MPN to match products in Shopping listings.',
+    recommendedFix:
+      'Add missing brand, SKU, GTIN, or MPN values to product pages and Product JSON-LD.',
+    expectedImpact: 'May improve Shopping ad match quality and product visibility.',
+  },
+  M004: {
+    title: 'Product Content Quality',
+    problem: 'Product content signals are weak or incomplete.',
+    whyItMatters:
+      'Factual product descriptions and specifications help shoppers and review teams evaluate listings.',
+    recommendedFix:
+      'Expand product descriptions and add measurable specifications such as material and size.',
+    expectedImpact: 'May reduce product disapprovals caused by insufficient product detail.',
+  },
+  M005: {
+    title: 'Product Trust Signals',
+    problem: 'Product pages are missing baseline trust elements.',
+    whyItMatters:
+      'Reviews, warranty, and return information help establish buyer confidence and policy transparency.',
+    recommendedFix:
+      'Add genuine reviews where available, plus clear warranty and return information.',
+    expectedImpact: 'May improve buyer trust and reduce post-purchase disputes.',
+  },
+  T001: {
+    title: 'Contact Information',
+    problem: 'Contact information is missing from the website.',
+    whyItMatters:
+      'Google and customers need a verifiable way to reach your business before approving Shopping ads.',
+    recommendedFix:
+      'Add email, phone, or business address to your footer, contact page, or about page.',
+    expectedImpact: 'May unblock Merchant Center contact verification requirements.',
+  },
+  P001: {
+    title: 'Privacy Policy',
+    problem: 'No privacy policy page was detected.',
+    whyItMatters:
+      'Privacy policies are expected by Google Merchant Center and many payment providers.',
+    recommendedFix:
+      'Create a privacy policy page covering data collection, cookies, payment data, and third-party services.',
+    expectedImpact: 'May improve platform trust during Merchant Center review.',
+  },
+  P002: {
+    title: 'Refund Policy',
+    problem: 'No refund or return policy page was detected.',
+    whyItMatters:
+      'Google expects clear return and refund terms before approving e-commerce listings.',
+    recommendedFix:
+      'Publish a refund policy with return period, conditions, refund method, and return address.',
+    expectedImpact: 'May unblock Merchant Center refund policy requirements.',
+  },
+  P003: {
+    title: 'Shipping Information',
+    problem: 'No shipping policy page was detected.',
+    whyItMatters:
+      'Customers and Google need transparent shipping details before purchase.',
+    recommendedFix:
+      'Create a shipping policy page with processing time, regions served, delivery time, and shipping costs.',
+    expectedImpact: 'May improve Merchant Center shipping transparency checks.',
   },
 }
 
@@ -216,6 +301,65 @@ function extractM001Signals(rule) {
   return { detected: uniqueStrings(detected), missing: uniqueStrings(missing) }
 }
 
+function extractT001Signals(rule) {
+  const detected = []
+  const missing = []
+  const message = rule.message || ''
+
+  if (/email/i.test(message) && (/detected/i.test(message) || rule.passed)) detected.push('Email')
+  if (/phone/i.test(message) && (/detected/i.test(message) || rule.passed)) detected.push('Phone')
+  if (/address/i.test(message) && (/detected/i.test(message) || rule.passed)) detected.push('Address')
+
+  if (!rule.passed) {
+    if (!detectedIncludesSimple(detected, 'email')) missing.push('Contact email')
+    if (!detectedIncludesSimple(detected, 'phone')) missing.push('Phone')
+    if (!detectedIncludesSimple(detected, 'address')) missing.push('Business address')
+    missing.push('Company name')
+  }
+
+  return { detected: uniqueStrings(detected), missing: uniqueStrings(missing) }
+}
+
+function detectedIncludesSimple(detected, token) {
+  return detected.some((item) => item.toLowerCase().includes(token))
+}
+
+function extractPolicyPageSignals(rule, pageLabel, missingPageLabel, contentGaps = []) {
+  const detected = []
+  const missing = []
+  const message = rule.message || ''
+
+  if (rule.passed || /page found|found at/i.test(message)) {
+    detected.push(`${pageLabel} page found`)
+    return { detected: uniqueStrings(detected), missing: uniqueStrings(missing) }
+  }
+
+  missing.push(missingPageLabel, ...contentGaps)
+  return { detected: uniqueStrings(detected), missing: uniqueStrings(missing) }
+}
+
+function extractP001Signals(rule) {
+  return extractPolicyPageSignals(rule, 'Privacy', 'Privacy policy page')
+}
+
+function extractP002Signals(rule) {
+  return extractPolicyPageSignals(rule, 'Refund', 'Refund policy page', [
+    'Return period',
+    'Return conditions',
+    'Refund method',
+    'Return address',
+  ])
+}
+
+function extractP003Signals(rule) {
+  return extractPolicyPageSignals(rule, 'Shipping', 'Shipping policy page', [
+    'Processing time',
+    'Shipping regions',
+    'Delivery time',
+    'Shipping costs',
+  ])
+}
+
 function extractM002Signals(rule) {
   const report = rule.policyQualityReport || {}
   const policies = report.policies || []
@@ -268,6 +412,10 @@ const SIGNAL_EXTRACTORS = {
   M001: extractM001Signals,
   M002: extractM002Signals,
   M003: extractM003Signals,
+  T001: extractT001Signals,
+  P001: extractP001Signals,
+  P002: extractP002Signals,
+  P003: extractP003Signals,
 }
 
 function getPolicyGaps(rule) {
@@ -287,7 +435,7 @@ function ruleNeedsFixGuide(rule) {
   return false
 }
 
-function buildFixGuide(rule, complianceIssue) {
+function buildFixGuide(rule, complianceIssue, context = {}) {
   const template = FIX_TEMPLATES[rule.id]
   if (!template) return null
 
@@ -299,6 +447,30 @@ function buildFixGuide(rule, complianceIssue) {
     complianceIssue?.fixSuggestion ||
     template.recommendedFix
 
+  const impact = predictFixImpact({
+    ruleId: rule.id,
+    severity: rule.severity || complianceIssue?.severity,
+    currentScore: context.gmcRiskScore,
+    gmcRiskScore: context.gmcRiskScore,
+    approvalRisk: context.approvalRisk,
+    missing,
+    detected,
+    rule,
+  })
+
+  const fixAssistant = generateFixAssistant({
+    ruleId: rule.id,
+    evidence: {
+      message: rule.message,
+      policyQuality: rule.policyQuality,
+      policyQualityReport: rule.policyQualityReport,
+      trustDetails: rule.trustDetails,
+      productTrustReport: rule.productTrustReport,
+    },
+    missing,
+    detected,
+  })
+
   return {
     ruleId: rule.id,
     title: template.title,
@@ -309,6 +481,8 @@ function buildFixGuide(rule, complianceIssue) {
     missing,
     recommendedFix,
     expectedImpact: complianceIssue?.impact || template.expectedImpact,
+    impactPrediction: toFixGuideImpactPrediction(impact),
+    fixAssistant,
   }
 }
 
@@ -329,10 +503,22 @@ function indexRuleResults(ruleResults) {
 }
 
 /**
- * @param {{ ruleResults: object[], complianceIssues?: object[], auditMode?: string }} input
+ * @param {{
+ *   ruleResults: object[],
+ *   complianceIssues?: object[],
+ *   auditMode?: string,
+ *   gmcRiskScore?: number|null,
+ *   approvalRisk?: object|null,
+ * }} input
  * @returns {{ fixGuides: object[] }}
  */
-export function generateFixGuides({ ruleResults = [], complianceIssues = [], auditMode = 'gmc' } = {}) {
+export function generateFixGuides({
+  ruleResults = [],
+  complianceIssues = [],
+  auditMode = 'gmc',
+  gmcRiskScore = null,
+  approvalRisk = null,
+} = {}) {
   if (auditMode !== 'gmc') {
     return { fixGuides: [] }
   }
@@ -340,13 +526,142 @@ export function generateFixGuides({ ruleResults = [], complianceIssues = [], aud
   const rulesById = indexRuleResults(ruleResults)
   const issuesById = indexComplianceIssues(complianceIssues)
   const fixGuides = []
+  const impactContext = { gmcRiskScore, approvalRisk }
 
   for (const ruleId of SUPPORTED_RULE_IDS) {
     const rule = rulesById.get(ruleId)
     if (!rule || !ruleNeedsFixGuide(rule)) continue
 
-    const guide = buildFixGuide(rule, issuesById.get(ruleId))
+    const guide = buildFixGuide(rule, issuesById.get(ruleId), impactContext)
     if (guide) fixGuides.push(guide)
+  }
+
+  fixGuides.sort((a, b) => a.priority - b.priority)
+
+  return { fixGuides }
+}
+
+function indexProductsByUrl(products = []) {
+  const map = new Map()
+  for (const product of products) {
+    if (product?.url) map.set(product.url, product)
+  }
+  return map
+}
+
+function extractProductDetectedSignals(product) {
+  const detected = []
+  const signals = product?.productSignals || {}
+
+  if (product?.structuredData?.found) detected.push('Product schema')
+  if (signals.brand?.found) detected.push('Brand')
+  if (signals.sku?.found) detected.push('SKU')
+  if (signals.gtin?.found) detected.push('GTIN')
+  if (signals.mpn?.found) detected.push('MPN')
+  if (signals.description?.found) detected.push('Description')
+  if (signals.price?.found) detected.push('Price')
+  if (signals.availability?.found) detected.push('Availability')
+  if (product?.quality?.hasSpecifications) detected.push('Specifications')
+  if (product?.quality?.hasMaterial) detected.push('Material')
+  if (product?.quality?.hasSize) detected.push('Size')
+  if (product?.quality?.hasReviews) detected.push('Reviews')
+  if (product?.quality?.hasWarranty) detected.push('Warranty')
+  if (product?.quality?.hasReturnInfo) detected.push('Return information')
+
+  return uniqueStrings(detected)
+}
+
+function extractProductIssueMissing(issue) {
+  const missing = []
+
+  if (Array.isArray(issue.missingFields)) {
+    for (const field of issue.missingFields) {
+      missing.push(String(field))
+    }
+  }
+
+  if (Array.isArray(issue.missing)) {
+    missing.push(...issue.missing)
+  }
+
+  return uniqueStrings(missing)
+}
+
+function buildProductFixGuide(issue, product, context = {}) {
+  const template = FIX_TEMPLATES[issue.ruleId]
+  if (!template || !PRODUCT_FIX_RULE_IDS.has(issue.ruleId)) return null
+
+  const detected = extractProductDetectedSignals(product)
+  const missing = extractProductIssueMissing(issue)
+  const missingForAssistant = issue.ruleId === 'G011' ? issue.missingFields || missing : missing
+
+  const fixAssistant = generateFixAssistant({
+    ruleId: issue.ruleId,
+    evidence: {
+      message: issue.message,
+      productUrl: issue.productUrl || product?.url || '',
+    },
+    missing: missingForAssistant,
+    detected,
+  })
+
+  if (!fixAssistant) return null
+
+  const impact = predictFixImpact({
+    ruleId: issue.ruleId,
+    severity: issue.severity,
+    currentScore: context.gmcRiskScore,
+    gmcRiskScore: context.gmcRiskScore,
+    approvalRisk: context.approvalRisk,
+    missing,
+    detected,
+  })
+
+  return {
+    ruleId: issue.ruleId,
+    productUrl: issue.productUrl || product?.url || '',
+    title: template.title,
+    priority: FIX_GUIDE_PRIORITY[issue.ruleId] ?? 99,
+    problem: issue.message || template.problem,
+    whyItMatters: template.whyItMatters,
+    detected,
+    missing,
+    recommendedFix: template.recommendedFix,
+    expectedImpact: template.expectedImpact,
+    impactPrediction: toFixGuideImpactPrediction(impact),
+    fixAssistant,
+    severity: issue.severity,
+    category: issue.category || 'gmc',
+    fixAvailable: Boolean(fixAssistant.copyReadyText),
+  }
+}
+
+/**
+ * Build product-level fix guides from product compliance issues.
+ * @param {{
+ *   productCompliance?: object|null,
+ *   productAnalysis?: object|null,
+ *   gmcRiskScore?: number|null,
+ *   approvalRisk?: object|null,
+ * }} input
+ */
+export function generateProductFixGuides({
+  productCompliance = null,
+  productAnalysis = null,
+  gmcRiskScore = null,
+  approvalRisk = null,
+} = {}) {
+  const analysisByUrl = indexProductsByUrl(productAnalysis?.products)
+  const fixGuides = []
+  const context = { gmcRiskScore, approvalRisk }
+
+  for (const productEntry of productCompliance?.products || []) {
+    const analyzedProduct = analysisByUrl.get(productEntry.url) || null
+
+    for (const issue of productEntry.issues || []) {
+      const guide = buildProductFixGuide(issue, analyzedProduct, context)
+      if (guide) fixGuides.push(guide)
+    }
   }
 
   fixGuides.sort((a, b) => a.priority - b.priority)

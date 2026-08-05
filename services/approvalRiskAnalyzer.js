@@ -220,6 +220,8 @@ function buildRiskFactors(complianceIssues, ruleResults) {
   for (const rule of failedRules) {
     if (seen.has(rule.id)) continue
     if (rule.id === 'M002' && rule.message?.includes('unavailable to crawler')) continue
+    if (rule.id === 'M002' && rule.passed) continue
+    if (rule.id === 'M002' && rule.severity === 'low') continue
 
     seen.add(rule.id)
     factors.push(toRiskFactor(rule, issueById.get(rule.id)))

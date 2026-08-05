@@ -374,6 +374,88 @@ function buildPriceConsistency(pricing) {
   }
 }
 
+function normalizeAvailabilityToken(value) {
+  if (!value) return null
+  const lower = String(value).toLowerCase()
+  if (lower.includes('instock') || lower.includes('in stock')) return 'instock'
+  if (lower.includes('outofstock') || lower.includes('out of stock') || lower.includes('sold out')) {
+    return 'outofstock'
+  }
+  if (lower.includes('preorder') || lower.includes('pre-order')) return 'preorder'
+  return lower.replace(/\s+/g, '')
+}
+
+/**
+ * Extract visible stock / availability signals from HTML.
+ * @param {string} html
+ */
+export function extractVisibleAvailability(html) {
+  if (!html) {
+    return { value: null, found: false, normalized: null }
+  }
+
+  const $ = cheerio.load(html)
+  const itempropEl = $('[itemprop="availability"]').first()
+  let value =
+    itempropEl.attr('href')?.trim() ||
+    itempropEl.attr('content')?.trim() ||
+    itempropEl.text().trim() ||
+    null
+
+  const bodyText = normalizeProductText($('body').text())
+  if (!value) {
+    if (/\bout of stock\b|\bsold out\b/i.test(bodyText)) value = 'OutOfStock'
+    else if (/\bin stock\b|\bavailable now\b/i.test(bodyText)) value = 'InStock'
+  }
+
+  return {
+    value,
+    found: Boolean(value),
+    normalized: normalizeAvailabilityToken(value),
+  }
+}
+
+/**
+ * Compare schema and visible availability when both are present.
+ */
+export function buildAvailabilityConsistency({ schemaAvailability = null, visibleAvailability = null } = {}) {
+  const schemaNormalized = normalizeAvailabilityToken(schemaAvailability)
+  const visibleNormalized = visibleAvailability?.normalized ?? normalizeAvailabilityToken(visibleAvailability?.value)
+
+  if (!schemaNormalized && !visibleNormalized) {
+    return {
+      schemaAvailability: null,
+      visibleAvailability: null,
+      consistent: null,
+      checked: false,
+      missingAvailability: true,
+    }
+  }
+
+  if (!schemaNormalized || !visibleNormalized) {
+    return {
+      schemaAvailability: schemaAvailability || null,
+      visibleAvailability: visibleAvailability?.value || null,
+      consistent: null,
+      checked: true,
+      missingAvailability: !schemaNormalized && !visibleNormalized,
+      note: !schemaNormalized
+        ? 'schema availability missing'
+        : 'visible availability not detected',
+    }
+  }
+
+  return {
+    schemaAvailability: schemaAvailability || null,
+    visibleAvailability: visibleAvailability?.value || null,
+    consistent: schemaNormalized === visibleNormalized,
+    checked: true,
+    missingAvailability: false,
+    schemaNormalized,
+    visibleNormalized,
+  }
+}
+
 /**
  * Score a fetched product page using URL + HTML signals.
  * @param {string} html
@@ -502,10 +584,16 @@ const PRODUCT_DESCRIPTION_SELECTORS = [
   '.product-description',
   '.product__description',
   '.product-single__description',
+  '.product__info-container .rte',
+  '.product-single__description .rte',
+  '#ProductSection-product-template .rte',
   '.woocommerce-product-details__short-description',
+  '.woocommerce-Tabs-panel--description',
+  '#tab-description',
   '.product-info',
   '.product-details',
   '#product-description',
+  'main .product',
   'main',
 ]
 
@@ -537,13 +625,14 @@ function normalizeProductText(text) {
 }
 
 function extractScopedProductText($, selectors) {
+  let best = ''
   for (const selector of selectors) {
     const el = $(selector).first()
-    if (el.length) {
-      return normalizeProductText(el.text())
-    }
+    if (!el.length) continue
+    const text = normalizeProductText(el.text())
+    if (text.length > best.length) best = text
   }
-  return ''
+  return best
 }
 
 function extractProductImages($) {
@@ -584,9 +673,12 @@ export function extractProductPageTrustContent(html) {
       imageCount: 0,
       imagesWithAlt: 0,
       hasMainImage: false,
+      hasAltText: false,
       htmlAttributes: {},
       hasReviews: false,
       hasGuarantee: false,
+      hasWarranty: false,
+      hasReturnInfo: false,
       hasContactOrOrder: false,
     }
   }
@@ -610,9 +702,16 @@ export function extractProductPageTrustContent(html) {
     ($('[itemprop="review"], .reviews, .product-reviews, #reviews').length > 0 ||
       /\b\d(\.\d)?\s*\/\s*5\b/.test(bodyText))
 
-  const hasGuarantee = /\b(guarantee|warranty|money[- ]back|satisfaction guaranteed)\b/i.test(bodyText)
+  const hasGuarantee =
+    /\b(warranty|warranties|guarantee|guaranteed|lifetime guarantee|quality guarantee|money[- ]back guarantee|satisfaction guaranteed)\b/i.test(
+      bodyText
+    )
+  const hasReturnInfo =
+    /\b(return policy|returns policy|free returns|easy returns|return within|refund policy|money back|money-back|refunds)\b/i.test(
+      bodyText
+    ) || /\breturns\b/i.test(bodyText)
   const hasContactOrOrder =
-    /\b(contact us|customer service|shipping|returns)\b/i.test(bodyText) ||
+    /\b(contact us|customer service|shipping)\b/i.test(bodyText) ||
     $('a[href^="mailto:"], a[href^="tel:"]').length > 0 ||
     /add to cart|buy now|add-to-cart/i.test(html)
 
@@ -626,11 +725,96 @@ export function extractProductPageTrustContent(html) {
     imageCount: imageSignals.imageCount,
     imagesWithAlt: imageSignals.imagesWithAlt,
     hasMainImage: imageSignals.hasMainImage,
+    hasAltText: imageSignals.imageCount > 0 && imageSignals.imagesWithAlt >= imageSignals.imageCount,
     htmlAttributes,
     hasReviews,
     hasGuarantee,
+    hasWarranty: hasGuarantee,
+    hasReturnInfo,
     hasContactOrOrder,
   }
 }
 
-export { MAX_SCORE_CANDIDATES }
+/**
+ * Extract visible / embedded product metadata from HTML beyond JSON-LD.
+ * @param {string} html
+ */
+export function extractHtmlProductMetadata(html) {
+  if (!html) {
+    return {
+      brand: null,
+      sku: null,
+      gtin: null,
+      mpn: null,
+      description: null,
+      descriptionLength: 0,
+    }
+  }
+
+  const $ = cheerio.load(html)
+  let shopifyProduct = null
+
+  $('script[type="application/json"]').each((_, el) => {
+    const id = $(el).attr('id') || ''
+    if (!shopifyProduct && /product/i.test(id)) {
+      try {
+        shopifyProduct = JSON.parse($(el).html())
+      } catch {
+        // ignore invalid JSON
+      }
+    }
+  })
+
+  const pickText = (value) => {
+    const text = normalizeProductText(value)
+    return text || null
+  }
+
+  let brand =
+    pickText(shopifyProduct?.vendor) ||
+    pickText($('meta[itemprop="brand"]').attr('content')) ||
+    pickText($('[itemprop="brand"]').first().text()) ||
+    pickText($('.product-brand').first().text()) ||
+    pickText($('.product__vendor').first().text()) ||
+    null
+
+  let sku =
+    pickText(shopifyProduct?.sku) ||
+    pickText(shopifyProduct?.variants?.find((variant) => variant?.sku)?.sku) ||
+    pickText($('meta[itemprop="sku"]').attr('content')) ||
+    pickText($('[itemprop="sku"]').first().text()) ||
+    pickText($('.sku').first().text().replace(/^sku:?/i, '')) ||
+    pickText($('.product-sku').first().text().replace(/^sku:?/i, '')) ||
+    null
+
+  let gtin =
+    pickText(shopifyProduct?.variants?.find((variant) => variant?.barcode)?.barcode) ||
+    pickText($('meta[itemprop="gtin13"]').attr('content')) ||
+    pickText($('meta[itemprop="gtin12"]').attr('content')) ||
+    pickText($('meta[itemprop="gtin8"]').attr('content')) ||
+    pickText($('meta[itemprop="gtin14"]').attr('content')) ||
+    pickText($('meta[itemprop="gtin"]').attr('content')) ||
+    null
+
+  let mpn =
+    pickText($('meta[itemprop="mpn"]').attr('content')) ||
+    pickText($('[itemprop="mpn"]').first().text()) ||
+    null
+
+  const descriptionText = extractScopedProductText($, PRODUCT_DESCRIPTION_SELECTORS)
+  const metaDescription =
+    pickText($('meta[name="description"]').attr('content')) ||
+    pickText($('meta[property="og:description"]').attr('content')) ||
+    null
+
+  return {
+    brand,
+    sku,
+    gtin,
+    mpn,
+    description: descriptionText || metaDescription,
+    descriptionLength: descriptionText.length || metaDescription?.length || 0,
+  }
+}
+
+export { MAX_SCORE_CANDIDATES, buildPriceConsistency }

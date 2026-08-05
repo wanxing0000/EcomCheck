@@ -1,6 +1,8 @@
 import { extractContactInfo, mergeContactInfo, parsePageContent, analyzeReturnPolicyQuality, analyzeShippingPolicyQuality, analyzePaymentPolicyQuality, getBodyTextFromHtml } from './pageContent.js'
 import { detectAdsData } from './adsDetect.js'
 import { scanProductPages } from './productCrawler.js'
+import { discoverProductPages } from './productDiscovery.js'
+import { analyzeDiscoveredProductPages } from './productAnalyzer.js'
 import { buildDetectionSources } from './detectionSources.js'
 import { extractHomepageSeo, buildStructuredDataSummary, parseRobotsBlocksAll, MAX_ROBOTS_BODY_CHARS } from './seoData.js'
 import * as cheerio from 'cheerio'
@@ -795,6 +797,18 @@ export async function crawl(url, options = {}) {
     timeout: PAGE_FETCH_TIMEOUT_MS,
   })
 
+  const productDiscovery = discoverProductPages({
+    links: allLinks,
+    platform,
+    pageScores: productScan.audit?.pageScores || [],
+  })
+
+  const productAnalysis = analyzeDiscoveredProductPages({
+    productDiscovery,
+    productsAudit: productScan.audit,
+    maxPages: 5,
+  })
+
   const ads = detectAdsData(html, productScan)
 
   const seo = {
@@ -817,6 +831,8 @@ export async function crawl(url, options = {}) {
     contactInfo,
     ads,
     productsAudit: productScan.audit,
+    productDiscovery,
+    productAnalysis,
     policyCandidates: policyCandidates.map(({ type, url, text, matchedKeyword }) => ({
       type,
       url,

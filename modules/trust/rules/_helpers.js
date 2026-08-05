@@ -513,6 +513,8 @@ export function summarizePolicyQuality(policies) {
   const missing = policies.filter((policy) => !policy.found)
 
   if (scorable.length === 0) {
+    const policyGapClassification = classifyPolicyGaps(policies)
+
     if (missing.length === policies.length) {
       return {
         averageScore: 0,
@@ -521,6 +523,7 @@ export function summarizePolicyQuality(policies) {
         scorableCount: 0,
         fetchFailedCount: fetchFailed.length,
         riskLevel: 'high',
+        policyGapClassification,
       }
     }
 
@@ -533,6 +536,7 @@ export function summarizePolicyQuality(policies) {
         fetchFailedCount: fetchFailed.length,
         riskLevel: 'low',
         fetchUnavailableOnly: true,
+        policyGapClassification,
       }
     }
 
@@ -544,6 +548,7 @@ export function summarizePolicyQuality(policies) {
         scorableCount: 0,
         fetchFailedCount: fetchFailed.length,
         riskLevel: missing.length > 0 ? 'high' : 'low',
+        policyGapClassification,
       }
     }
 
@@ -554,16 +559,14 @@ export function summarizePolicyQuality(policies) {
       scorableCount: 0,
       fetchFailedCount: fetchFailed.length,
       riskLevel: 'high',
+      policyGapClassification,
     }
   }
 
   const scores = scorable.map((policy) => policy.qualityScore ?? 0)
   const averageScore = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
   const lowestScore = Math.min(...scores)
-
-  let riskLevel = 'low'
-  if (lowestScore < 40) riskLevel = 'high'
-  else if (lowestScore < 70) riskLevel = 'medium'
+  const policyGapClassification = classifyPolicyGaps(policies)
 
   return {
     averageScore,
@@ -571,8 +574,257 @@ export function summarizePolicyQuality(policies) {
     policies,
     scorableCount: scorable.length,
     fetchFailedCount: fetchFailed.length,
-    riskLevel,
+    riskLevel: 'legacy',
+    policyGapClassification,
   }
+}
+
+const POLICY_PASS_AVERAGE = 80
+const POLICY_ADVISORY_AVERAGE = 65
+const POLICY_SPARSE_SCORE = 40
+
+const POLICY_RISK_MISSING_PATTERNS = [
+  /policy page/i,
+  /policy content/i,
+  /return window/i,
+  /refund keywords/i,
+  /return keywords/i,
+  /payment methods/i,
+  /shipping costs/i,
+  /delivery timeframes/i,
+  /shipping regions/i,
+  /actionable payment information/i,
+]
+
+const POLICY_OPTIMIZATION_MISSING_PATTERNS = [
+  /sufficient content length/i,
+  /return conditions/i,
+  /contact information/i,
+  /currency or pricing terms/i,
+  /payment keywords/i,
+  /shipping keywords/i,
+]
+
+function classifyPolicyMissingItem(item) {
+  const text = String(item || '').trim()
+  if (!text) return null
+
+  if (POLICY_OPTIMIZATION_MISSING_PATTERNS.some((pattern) => pattern.test(text))) {
+    return 'optimization'
+  }
+
+  if (POLICY_RISK_MISSING_PATTERNS.some((pattern) => pattern.test(text))) {
+    return 'risk'
+  }
+
+  return 'risk'
+}
+
+export function classifyPolicyGaps(policies) {
+  const riskMissing = []
+  const optimizationMissing = []
+  const policiesWithRiskGaps = new Set()
+
+  for (const policy of policies || []) {
+    let policyHasRisk = false
+
+    if (!policy.found) {
+      riskMissing.push(`${policy.label}: policy page`)
+      policiesWithRiskGaps.add(policy.id)
+      continue
+    }
+
+    if (policy.contentFetchStatus === 'empty') {
+      riskMissing.push(`${policy.label}: policy content`)
+      policiesWithRiskGaps.add(policy.id)
+      continue
+    }
+
+    for (const item of policy.missing || []) {
+      const bucket = classifyPolicyMissingItem(item)
+      const label = `${policy.label}: ${item}`
+      if (bucket === 'optimization') {
+        optimizationMissing.push(label)
+      } else {
+        riskMissing.push(label)
+        policyHasRisk = true
+      }
+    }
+
+    if (policyHasRisk) {
+      policiesWithRiskGaps.add(policy.id)
+    }
+
+    if (isPolicyExtremelySparse(policy)) {
+      policiesWithRiskGaps.add(policy.id)
+    }
+  }
+
+  return {
+    riskMissing: [...new Set(riskMissing)],
+    optimizationMissing: [...new Set(optimizationMissing)],
+    policiesWithRiskGaps: policiesWithRiskGaps.size,
+  }
+}
+
+export function isPolicyExtremelySparse(policy) {
+  if (!policy?.found) return false
+  if (policy.contentFetchStatus === 'empty') return true
+  if (policy.contentFetchStatus !== 'success') return false
+
+  const score = policy.qualityScore ?? 0
+  const textLength = policy.quality?.textLength ?? policy.content?.textLength ?? 0
+
+  if (score < POLICY_SPARSE_SCORE) return true
+  if (textLength < 40 && score < 55) return true
+
+  return false
+}
+
+export function resolvePolicyQualityOutcome(policies, summary) {
+  const gapClassification = classifyPolicyGaps(policies)
+  const missingPagePolicies = policies.filter((policy) => !policy.found)
+  const sparsePolicies = policies.filter((policy) => isPolicyExtremelySparse(policy))
+  const averageScore = summary.averageScore ?? 0
+
+  if (summary.fetchUnavailableOnly) {
+    return {
+      passed: true,
+      severity: 'low',
+      misrepresentationLevel: 'low',
+      outcome: 'pass',
+      gapClassification,
+    }
+  }
+
+  if (missingPagePolicies.length > 0) {
+    return {
+      passed: false,
+      severity: 'high',
+      misrepresentationLevel: 'high',
+      outcome: 'high_risk',
+      gapClassification,
+    }
+  }
+
+  if (sparsePolicies.length > 0) {
+    return {
+      passed: false,
+      severity: 'medium',
+      misrepresentationLevel: 'medium',
+      outcome: 'warning',
+      gapClassification,
+    }
+  }
+
+  if (gapClassification.policiesWithRiskGaps >= 2) {
+    return {
+      passed: false,
+      severity: 'medium',
+      misrepresentationLevel: 'medium',
+      outcome: 'warning',
+      gapClassification,
+    }
+  }
+
+  if (averageScore >= POLICY_PASS_AVERAGE) {
+    return {
+      passed: true,
+      severity: 'low',
+      misrepresentationLevel: 'low',
+      outcome: gapClassification.optimizationMissing.length > 0 ? 'pass_with_optimization' : 'pass',
+      gapClassification,
+    }
+  }
+
+  if (averageScore >= POLICY_ADVISORY_AVERAGE) {
+    if (gapClassification.riskMissing.length === 0) {
+      return {
+        passed: true,
+        severity: 'low',
+        misrepresentationLevel: 'low',
+        outcome: 'advisory',
+        gapClassification,
+      }
+    }
+
+    return {
+      passed: false,
+      severity: 'medium',
+      misrepresentationLevel: 'medium',
+      outcome: 'warning',
+      gapClassification,
+    }
+  }
+
+  return {
+    passed: false,
+    severity: 'medium',
+    misrepresentationLevel: 'medium',
+    outcome: 'warning',
+    gapClassification,
+  }
+}
+
+function buildPolicyQualityMessage({ policies, averageScore, outcome, gapClassification, fetchFailedPolicies }) {
+  const policyLines = policies.map((policy) => {
+    if (!policy.found) return `${policy.label}: missing page`
+    if (policy.contentFetchStatus === 'failed') {
+      return `${policy.label}: page found, content unavailable to crawler`
+    }
+    if (policy.contentFetchStatus === 'empty') {
+      return `${policy.label}: empty content`
+    }
+    return `${policy.label}: ${policy.qualityScore}/100`
+  })
+
+  const fetchNotes =
+    fetchFailedPolicies.length > 0
+      ? ` ${fetchFailedPolicies.map((policy) => `${policy.label}: ${policy.analysisMessage}`).join(' ')}`
+      : ''
+
+  if (outcome === 'pass' || outcome === 'pass_with_optimization') {
+    return `Store policies meet quality expectations (average ${averageScore}/100). ${policyLines.join(' · ')}.${fetchNotes}`
+  }
+
+  if (outcome === 'advisory') {
+    const optimizationNote =
+      gapClassification.optimizationMissing.length > 0
+        ? ` Optimization: ${gapClassification.optimizationMissing.slice(0, 3).join(', ')}.`
+        : ''
+    return `Store policies are generally acceptable (average ${averageScore}/100). ${policyLines.join(' · ')}.${optimizationNote}${fetchNotes}`
+  }
+
+  const riskNote =
+    gapClassification.riskMissing.length > 0
+      ? ` Risk gaps: ${gapClassification.riskMissing.slice(0, 3).join(', ')}.`
+      : ''
+  const optimizationNote =
+    gapClassification.optimizationMissing.length > 0
+      ? ` Optimization: ${gapClassification.optimizationMissing.slice(0, 2).join(', ')}.`
+      : ''
+
+  return `Policy quality needs improvement (average ${averageScore}/100). ${policyLines.join(' · ')}.${riskNote}${optimizationNote}${fetchNotes}`
+}
+
+function buildPolicyQualityRecommendation(outcome, gapClassification, policies) {
+  if (outcome === 'pass' || outcome === 'pass_with_optimization' || outcome === 'advisory') {
+    if (gapClassification.optimizationMissing.length > 0) {
+      return `Optional policy improvements: ${gapClassification.optimizationMissing.slice(0, 3).join(', ')}.`
+    }
+    return 'Policy pages provide sufficient depth for Merchant Center review.'
+  }
+
+  const sparsePolicies = policies.filter((policy) => isPolicyExtremelySparse(policy))
+  if (sparsePolicies.length > 0) {
+    return `Expand ${sparsePolicies.map((policy) => policy.label.toLowerCase()).join(', ')} with return windows, shipping costs, delivery times, payment methods, and contact details.`
+  }
+
+  if (gapClassification.riskMissing.length > 0) {
+    return `Address policy risk gaps: ${gapClassification.riskMissing.slice(0, 3).join(', ')}.`
+  }
+
+  return 'Expand refund, shipping, and payment policies with clear terms, timelines, and contact information.'
 }
 
 function countImagesFromProduct(product) {
@@ -591,14 +843,96 @@ function averageNumbers(values) {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
 }
 
-function buildTrustFactor(name, score, detected, missing, recommendation) {
+function buildTrustFactor(name, score, detected, missing, recommendation, meta = {}) {
   return {
     name,
     score: Math.max(0, Math.min(100, Math.round(score))),
     detected,
     missing,
     recommendation,
+    ...meta,
   }
+}
+
+const PRODUCT_TRUST_PASS_SCORE = 70
+
+const OPTIMIZATION_MISSING_PATTERNS = [
+  /^brand$/i,
+  /^sku$/i,
+  /warranty|guarantee/i,
+  /review|rating/i,
+  /alt text/i,
+  /additional product images/i,
+]
+
+const RISK_MISSING_PATTERNS = [
+  /product description/i,
+  /longer product description/i,
+  /product images?/i,
+  /main product image/i,
+  /contact or order/i,
+  /specifications?/i,
+  /factual attributes/i,
+  /substantive product copy/i,
+  /^material$/i,
+  /^size$/i,
+  /^color$/i,
+  /^model$/i,
+]
+
+function classifyMissingItem(item) {
+  const text = String(item || '').trim()
+  if (!text) return null
+
+  if (OPTIMIZATION_MISSING_PATTERNS.some((pattern) => pattern.test(text))) {
+    return 'optimization'
+  }
+
+  if (RISK_MISSING_PATTERNS.some((pattern) => pattern.test(text))) {
+    return 'risk'
+  }
+
+  return 'risk'
+}
+
+function classifyProductTrustGaps(factors) {
+  const optimizationMissing = []
+  const riskMissing = []
+
+  for (const factor of factors || []) {
+    for (const item of factor.missing || []) {
+      const bucket = classifyMissingItem(item)
+      if (bucket === 'optimization') {
+        optimizationMissing.push(item)
+      } else if (bucket === 'risk') {
+        riskMissing.push(item)
+      }
+    }
+  }
+
+  return {
+    optimizationMissing: [...new Set(optimizationMissing)],
+    riskMissing: [...new Set(riskMissing)],
+  }
+}
+
+function resolveProductTrustFailureSeverity(gapClassification) {
+  const { riskMissing } = gapClassification
+  const hasNoDescription = riskMissing.some((item) => /product description/i.test(item))
+  const hasNoImages = riskMissing.some((item) => /product images?/i.test(item))
+
+  if (hasNoDescription && hasNoImages) return 'high'
+  if (hasNoDescription || hasNoImages) return 'medium'
+  if (riskMissing.length > 0) return 'medium'
+  return 'low'
+}
+
+function resolveProductTrustMisrepresentationLevel(gapClassification, score) {
+  const severity = resolveProductTrustFailureSeverity(gapClassification)
+  if (severity === 'high') return 'high'
+  if (severity === 'medium') return 'medium'
+  if (score < 50) return 'medium'
+  return 'low'
 }
 
 function collectSchemaAttributePresence(product) {
@@ -813,44 +1147,18 @@ function scorePageTrustSignals(snapshot) {
   )
 }
 
-function deriveProductTrustRiskLevel(factors, snapshots) {
+function deriveProductTrustRiskLevel(factors, snapshots, score, gapClassification) {
   if (snapshots.length === 0) return 'medium'
 
-  const descriptionFactor = factors.find((factor) => factor.name === 'Product Description Quality')
-  const imageFactor = factors.find((factor) => factor.name === 'Product Image Signals')
-  const attributeFactor = factors.find((factor) => factor.name === 'Product Attribute Completeness')
-
-  const criticallyEmptyPages = snapshots.filter(
-    (snapshot) => snapshot.descriptionLength < 50 && snapshot.imageCount === 0
-  ).length
-
-  const missingDescription = descriptionFactor?.missing?.includes('product description')
-  const missingImages = imageFactor?.missing?.includes('product images')
-
-  if (criticallyEmptyPages >= Math.ceil(snapshots.length / 2)) {
-    return 'high'
+  if (score >= PRODUCT_TRUST_PASS_SCORE) {
+    return 'low'
   }
 
-  if (missingDescription && missingImages) {
-    return 'high'
-  }
+  const { riskMissing } = gapClassification || classifyProductTrustGaps(factors)
+  const severity = resolveProductTrustFailureSeverity({ riskMissing })
 
-  if (
-    (descriptionFactor?.score ?? 100) < 25 &&
-    (imageFactor?.score ?? 100) < 25 &&
-    (attributeFactor?.score ?? 100) < 30
-  ) {
-    return 'high'
-  }
-
-  if (factors.some((factor) => factor.score < 65)) {
-    return 'medium'
-  }
-
-  if (factors.some((factor) => factor.missing.length >= 2)) {
-    return 'medium'
-  }
-
+  if (severity === 'high') return 'high'
+  if (severity === 'medium') return 'medium'
   return 'low'
 }
 
@@ -859,15 +1167,26 @@ function buildProductTrustMessage(report) {
     return 'No product pages were scanned to evaluate product trust signals.'
   }
 
-  if (report.riskLevel === 'low') {
+  if (report.score >= PRODUCT_TRUST_PASS_SCORE) {
     return `Product pages provide solid trust signals (${report.score}/100 across ${report.scannedPages} page(s)).`
   }
 
-  const issueSummaries = report.factors
-    .filter((factor) => factor.missing.length > 0)
-    .map((factor) => `${factor.name}: ${factor.missing.slice(0, 2).join(', ')}`)
+  const { optimizationMissing, riskMissing } = report.gapClassification || {
+    optimizationMissing: [],
+    riskMissing: [],
+  }
 
-  return `Product trust analysis (${report.score}/100 across ${report.scannedPages} page(s)). ${issueSummaries.join(' · ')}`
+  const issueParts = []
+  if (riskMissing.length > 0) {
+    issueParts.push(`Risk gaps: ${riskMissing.slice(0, 3).join(', ')}`)
+  }
+  if (optimizationMissing.length > 0) {
+    issueParts.push(`Optimization: ${optimizationMissing.slice(0, 3).join(', ')}`)
+  }
+
+  const issueSummary = issueParts.length > 0 ? issueParts.join(' · ') : 'Additional product detail recommended'
+
+  return `Product trust analysis (${report.score}/100 across ${report.scannedPages} page(s)). ${issueSummary}`
 }
 
 function buildProductTrustRecommendation(report) {
@@ -875,11 +1194,24 @@ function buildProductTrustRecommendation(report) {
     return 'Ensure product detail pages are linked from your homepage so AuditPilot can review descriptions, images, and specifications.'
   }
 
-  return report.factors
-    .filter((factor) => factor.missing.length > 0)
-    .map((factor) => factor.recommendation)
-    .slice(0, 3)
-    .join(' ')
+  const { riskMissing, optimizationMissing } = report.gapClassification || {
+    riskMissing: [],
+    optimizationMissing: [],
+  }
+
+  const recommendations = []
+
+  for (const factor of report.factors || []) {
+    if (factor.missing.length === 0) continue
+    const hasRiskGap = factor.missing.some((item) => classifyMissingItem(item) === 'risk')
+    if (hasRiskGap) recommendations.push(factor.recommendation)
+  }
+
+  if (recommendations.length === 0 && optimizationMissing.length > 0) {
+    return `Optional improvements: add ${optimizationMissing.slice(0, 3).join(', ')} where relevant.`
+  }
+
+  return recommendations.slice(0, 3).join(' ')
 }
 
 export function analyzeProductPagesTrust(auditData) {
@@ -896,6 +1228,8 @@ export function analyzeProductPagesTrust(auditData) {
       pages: [],
       factors: [],
       riskLevel: 'medium',
+      gapClassification: { optimizationMissing: [], riskMissing: [] },
+      passThreshold: PRODUCT_TRUST_PASS_SCORE,
     }
     return {
       ...emptyReport,
@@ -942,7 +1276,8 @@ export function analyzeProductPagesTrust(auditData) {
   const score = averageNumbers(factorScores)
   const averageScore = score
   const lowestScore = Math.min(...factorScores)
-  const riskLevel = deriveProductTrustRiskLevel(factors, snapshots)
+  const gapClassification = classifyProductTrustGaps(factors)
+  const riskLevel = deriveProductTrustRiskLevel(factors, snapshots, score, gapClassification)
 
   const pages = snapshots.map((snapshot, index) => ({
     url: snapshot.url,
@@ -965,17 +1300,32 @@ export function analyzeProductPagesTrust(auditData) {
     factors,
     pages,
     riskLevel,
+    gapClassification,
+    passThreshold: PRODUCT_TRUST_PASS_SCORE,
     summaryMessage: buildProductTrustMessage({
       score,
       scannedPages: productPages.length,
       riskLevel,
       factors,
+      gapClassification,
     }),
     summaryRecommendation: buildProductTrustRecommendation({
       scannedPages: productPages.length,
       factors,
+      gapClassification,
     }),
   }
+}
+
+export {
+  classifyProductTrustGaps,
+  resolveProductTrustFailureSeverity,
+  resolveProductTrustMisrepresentationLevel,
+  PRODUCT_TRUST_PASS_SCORE,
+  buildPolicyQualityMessage,
+  buildPolicyQualityRecommendation,
+  POLICY_PASS_AVERAGE,
+  POLICY_ADVISORY_AVERAGE,
 }
 
 export function misrepresentationLevelToSeverity(level) {

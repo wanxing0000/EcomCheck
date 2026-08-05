@@ -93,6 +93,35 @@ function parsePriceNumber(value) {
   return Number.isFinite(num) ? num : null
 }
 
+export function extractGtinFromProduct(product) {
+  if (!product || typeof product !== 'object') return null
+  return (
+    product.gtin ??
+    product.gtin8 ??
+    product.gtin12 ??
+    product.gtin13 ??
+    product.gtin14 ??
+    null
+  )
+}
+
+export function extractBrandFromProduct(product) {
+  if (!product || typeof product !== 'object') return null
+  if (typeof product.brand === 'string') return product.brand.trim() || null
+  return product.brand?.name?.trim() || null
+}
+
+export function extractSkuFromProduct(product) {
+  if (!product || typeof product !== 'object') return null
+  if (hasValue(product.sku)) return String(product.sku).trim()
+  const offers = product.offers
+  const offerList = Array.isArray(offers) ? offers : offers ? [offers] : []
+  for (const offer of offerList) {
+    if (hasValue(offer?.sku)) return String(offer.sku).trim()
+  }
+  return null
+}
+
 function extractOfferValues(offer) {
   if (!offer) return { price: null, currency: null, source: null }
 
@@ -129,17 +158,20 @@ function extractOfferValues(offer) {
  */
 export function analyzeProductSchema(product) {
   const offer = getOffer(product)
-  const brand = product.brand?.name || product.brand
+  const brand = extractBrandFromProduct(product)
+  const gtin = extractGtinFromProduct(product)
+  const sku = extractSkuFromProduct(product)
   const offerValues = extractOfferValues(offer)
 
   const fields = {
     name: hasValue(product.name),
     image: hasValue(product.image),
+    description: hasValue(product.description),
     price: hasValue(offer?.price ?? offer?.priceSpecification?.price ?? offer?.lowPrice),
     availability: hasValue(offer?.availability),
     brand: hasValue(brand),
-    sku: hasValue(product.sku),
-    gtin: hasValue(product.gtin ?? product.gtin8 ?? product.gtin12 ?? product.gtin13 ?? product.gtin14),
+    sku: hasValue(sku),
+    gtin: hasValue(gtin),
     mpn: hasValue(product.mpn),
   }
 
@@ -149,8 +181,15 @@ export function analyzeProductSchema(product) {
 
   return {
     name: product.name || null,
+    description: typeof product.description === 'string' ? product.description : null,
     fields,
-    values: offerValues,
+    values: {
+      ...offerValues,
+      brand: brand || null,
+      sku: sku || null,
+      gtin: gtin || null,
+      mpn: product.mpn || null,
+    },
     missingRequired,
     missingRecommended,
     missingFields,

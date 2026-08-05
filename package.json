@@ -8,6 +8,7 @@
     "build": "npm run build --prefix frontend",
     "vercel:dev": "vercel dev",
     "test:audit": "node tests/auditRunner.js",
+    "calibrate": "node scripts/run-calibration.js",
     "migrate:reports": "node scripts/migrate-reports-to-supabase.js"
   },
   "dependencies": {

@@ -1,0 +1,422 @@
+{
+  "generatedAt": "2026-08-05T02:47:48.831Z",
+  "focusRules": [
+    "G008",
+    "G010",
+    "M002",
+    "M003"
+  ],
+  "totals": {
+    "cases": 13,
+    "falsePositives": 16,
+    "falseNegatives": 0,
+    "errors": 0
+  },
+  "cases": [
+    {
+      "name": "Fixture: Visa + Mastercard + PayPal payment page",
+      "url": "fixture:payment-visa-mastercard-paypal",
+      "score": 61,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "SCORE",
+          "reason": "Score 61 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Apple Pay + Google Pay payment page",
+      "url": "fixture:payment-apple-google-pay",
+      "score": 61,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "SCORE",
+          "reason": "Score 61 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Free standard shipping policy",
+      "url": "fixture:shipping-free-standard",
+      "score": 53,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "G008",
+          "reason": "Payment page content is too short (73 characters, minimum 80).",
+          "evidence": "We accept Visa and Mastercard. | missing: sufficient content length, currency or pricing terms",
+          "whyWrong": "Payment methods (Visa/Mastercard/PayPal/Apple Pay/Google Pay) are clearly present; failing on page length or currency terms alone is a false alarm for payment-method coverage."
+        },
+        {
+          "rule": "SCORE",
+          "reason": "Score 53 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Flat rate shipping policy",
+      "url": "fixture:shipping-flat-rate",
+      "score": 53,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "G008",
+          "reason": "Payment page content is too short (75 characters, minimum 80).",
+          "evidence": "We accept Visa, Mastercard and PayPal. | missing: sufficient content length, currency or pricing terms",
+          "whyWrong": "Payment methods (Visa/Mastercard/PayPal/Apple Pay/Google Pay) are clearly present; failing on page length or currency terms alone is a false alarm for payment-method coverage."
+        },
+        {
+          "rule": "SCORE",
+          "reason": "Score 53 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Calculated at checkout shipping",
+      "url": "fixture:shipping-calculated-checkout",
+      "score": 48,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "message": "Shipping policy is incomplete or lacks actionable delivery details.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "G008",
+          "reason": "Payment page content is too short (71 characters, minimum 80).",
+          "evidence": "We accept Visa, Mastercard, PayPal and debit card payments at checkout. | missing: sufficient content length, currency or pricing terms",
+          "whyWrong": "Payment methods (Visa/Mastercard/PayPal/Apple Pay/Google Pay) are clearly present; failing on page length or currency terms alone is a false alarm for payment-method coverage."
+        },
+        {
+          "rule": "SCORE",
+          "reason": "Score 48 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Shipping included policy",
+      "url": "fixture:shipping-included",
+      "score": 61,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "message": "Shipping policy is incomplete or lacks actionable delivery details.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "SCORE",
+          "reason": "Score 61 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Strong store policies (M002)",
+      "url": "fixture:m002-strong-policies",
+      "score": 81,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "M002",
+          "reason": "Policy quality needs improvement (average 89/100, lowest 67/100). Refund Policy: 67/100 · Shipping Policy: 100/100 · Payment Policy: 100/100.",
+          "evidence": "Average 89/100, lowest 67/100",
+          "whyWrong": "Policies are substantive (avg ≥75) but M002 still fails at medium — likely over-penalizing a single weaker policy page."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: Normal product page trust (M003)",
+      "url": "fixture:m003-normal-product",
+      "score": 35,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "message": "Shipping policy is incomplete or lacks actionable delivery details.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "G008",
+          "reason": "Payment page content is too short (72 characters, minimum 80).",
+          "evidence": "We accept Visa, Mastercard and PayPal. | missing: sufficient content length, currency or pricing terms",
+          "whyWrong": "Payment methods (Visa/Mastercard/PayPal/Apple Pay/Google Pay) are clearly present; failing on page length or currency terms alone is a false alarm for payment-method coverage."
+        },
+        {
+          "rule": "G010",
+          "reason": "Shipping policy page is too short (79 characters, minimum 80).",
+          "evidence": "Free standard shipping within the United States. (free_shipping) | missing: sufficient content length",
+          "whyWrong": "Shipping cost type (free/flat/calculated) is correctly detected; failing only on minimum length or region wording is overly strict for shipping-cost coverage."
+        },
+        {
+          "rule": "SCORE",
+          "reason": "Score 35 outside expected range 70-100",
+          "evidence": "Store appears mostly ready but several trust or policy signals may affect Merchant Center approval.",
+          "whyWrong": "Expected score within 70-100 for this calibration case."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Fixture: No payment information (negative control)",
+      "url": "fixture:payment-none",
+      "score": 24,
+      "approvalRisk": "high",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [],
+      "falseNegatives": []
+    },
+    {
+      "name": "Live: Cosmic Horror Shop",
+      "url": "https://cosmichorrorshop.com",
+      "score": 79,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "message": "Product pages lack sufficient trust signals.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "M003",
+          "reason": "Product trust analysis (79/100 across 5 page(s)). Product Description Quality: longer product description · Product Attribute Completeness: brand, sku · Product Page Trust Signals: guarantee or warranty information",
+          "evidence": "Average product trust score 79/100 across 5 page(s)",
+          "whyWrong": "Product pages contain normal trust signals and should not be flagged as lacking trust."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Live: Narla's Fable and Fur Candles",
+      "url": "https://narlasfableandfurcandles.co.uk",
+      "score": 92,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "M003",
+          "severity": "medium",
+          "message": "Product pages lack sufficient trust signals.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "M003",
+          "reason": "Product trust analysis (73/100 across 5 page(s)). Product Attribute Completeness: brand, size · Product Page Trust Signals: guarantee or warranty information, customer reviews or ratings",
+          "evidence": "Average product trust score 73/100 across 5 page(s)",
+          "whyWrong": "Product pages contain normal trust signals and should not be flagged as lacking trust."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Live: Founders Parts",
+      "url": "https://foundersparts.com",
+      "score": 41,
+      "approvalRisk": "high",
+      "detectedIssues": [
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        },
+        {
+          "id": "M002",
+          "severity": "medium",
+          "message": "Store policies lack sufficient depth or clarity.",
+          "status": "action"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "message": "Product pages lack sufficient trust signals.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [
+        {
+          "rule": "M003",
+          "reason": "Product trust analysis (79/100 across 3 page(s)). Product Attribute Completeness: brand, material · Product Page Trust Signals: customer reviews or ratings",
+          "evidence": "Average product trust score 79/100 across 3 page(s)",
+          "whyWrong": "Product pages contain normal trust signals and should not be flagged as lacking trust."
+        }
+      ],
+      "falseNegatives": []
+    },
+    {
+      "name": "Live: Bshive Design",
+      "url": "https://bshivedesign.co.uk",
+      "score": 87,
+      "approvalRisk": "medium",
+      "detectedIssues": [
+        {
+          "id": "M003",
+          "severity": "medium",
+          "message": "Product pages lack sufficient trust signals.",
+          "status": "action"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "message": "Payment information is incomplete.",
+          "status": "action"
+        }
+      ],
+      "falsePositives": [],
+      "falseNegatives": []
+    }
+  ]
+}

@@ -13,6 +13,7 @@ import {
   resolveAuditPlan,
 } from '../services/auditModes.js'
 import { buildUsagePayload, resolveClientId } from '../services/usageLimit.js'
+import { runProductComplianceRules } from '../services/productComplianceRules.js'
 
 function buildGmcRiskDetails(gmcRules) {
   const byId = Object.fromEntries(gmcRules.map((rule) => [rule.id, rule]))
@@ -132,6 +133,8 @@ export async function handleAudit(req, res) {
   try {
     const crawlResult = await crawl(url)
     const ruleResults = runRules(crawlResult, auditOptions)
+    const productCompliance = runProductComplianceRules(crawlResult.productAnalysis)
+
     const { results: moduleResults, moduleStatus } = await runAuditModules(crawlResult, auditOptions)
     const { score, issues, recommendations, summary } = scoreAudit(ruleResults)
     const gmc = moduleResults.gmc
@@ -153,7 +156,14 @@ export async function handleAudit(req, res) {
     }))
 
     const mergedGmcWarnings = gmc ? [...gmc.warnings, ...g006Warnings] : []
-    const report = buildProfessionalReport(ruleResults, g006Warnings, reportAuditContext)
+    const report = buildProfessionalReport(ruleResults, g006Warnings, {
+      ...reportAuditContext,
+      website: crawlResult.url || url,
+      saveAuditHistory: true,
+      productCompliance,
+      productAnalysis: crawlResult.productAnalysis,
+      productDiscovery: crawlResult.productDiscovery,
+    })
 
     const publicModules = Object.fromEntries(
       Object.entries(moduleResults).map(([id, result]) => [id, toPublicModuleResult(result)])
@@ -162,6 +172,9 @@ export async function handleAudit(req, res) {
     const auditData = {
       ...crawlResult,
       ...auditMetadata,
+      productCompliance: report.productCompliance ?? productCompliance,
+      productComplianceActions: report.productComplianceActions ?? [],
+      productRiskSummary: report.productRiskSummary ?? null,
       score,
       issues,
       recommendations,

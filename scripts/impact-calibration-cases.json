@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Normal website",
+    "url": "fixture:impact-normal",
+    "focusRules": ["G008", "G010", "M002", "M003"],
+    "notes": "Baseline healthy store — predictions should stay modest or absent."
+  },
+  {
+    "name": "Missing payment methods website",
+    "url": "fixture:impact-missing-payment",
+    "focusRules": ["G008"],
+    "notes": "G008 paymentMethods missing — calibrate +3~8 gain and medium→low risk."
+  },
+  {
+    "name": "Missing shipping cost website",
+    "url": "fixture:impact-missing-shipping-cost",
+    "focusRules": ["G010"],
+    "notes": "G010 shipping cost missing — verify gain is not over-estimated."
+  },
+  {
+    "name": "Missing policies website",
+    "url": "fixture:impact-missing-policies",
+    "focusRules": ["M002", "G010"],
+    "notes": "Missing shipping policy page — calibrate high-impact policy fixes."
+  },
+  {
+    "name": "Low product trust website",
+    "url": "fixture:impact-low-product-trust",
+    "focusRules": ["M003"],
+    "notes": "Product trust risk gaps — verify approval risk change after fix."
+  }
+]
