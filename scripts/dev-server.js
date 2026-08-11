@@ -12,6 +12,7 @@ import auditHandler from '../api/audit.js'
 import usageHandler from '../api/usage.js'
 import reportsHandler from '../api/reports.js'
 import reportsMineHandler from '../api/reports/mine.js'
+import reportsCompareHandler from '../api/reports/compare.js'
 import reportsSaveHandler from '../api/reports/save.js'
 import reportByIdHandler from '../api/reports/[id].js'
 import { sendJson } from '../api/_shared.js'
@@ -46,6 +47,13 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (method === 'GET' && url.startsWith('/api/reports/compare')) {
+    const parsed = new URL(url, 'http://localhost')
+    req.query = Object.fromEntries(parsed.searchParams.entries())
+    await reportsCompareHandler(req, res)
+    return
+  }
+
   if (method === 'GET' && url === '/api/reports') {
     await reportsHandler(req, res)
     return
@@ -71,6 +79,7 @@ server.listen(PORT, () => {
   console.log(`  GET  /api/usage`)
   console.log(`  POST /api/reports/save`)
   console.log(`  GET  /api/reports/mine`)
+  console.log(`  GET  /api/reports/compare`)
   console.log(`  GET  /api/reports`)
   console.log(`  GET  /api/reports/:id`)
 })

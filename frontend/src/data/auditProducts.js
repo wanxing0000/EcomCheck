@@ -14,7 +14,7 @@ export const GMC_AUDIT_PRODUCT = {
   landingPath: '/audit/gmc',
   pricing: {
     free: {
-      dailyLimit: 3,
+      dailyLimit: 1,
       features: [],
     },
     pro: {
@@ -50,7 +50,7 @@ export const GMC_REPORT_CONVERSION = {
 }
 
 export function getGmcFreeDailyLimit() {
-  return GMC_AUDIT_PRODUCT.pricing?.free?.dailyLimit ?? 3
+  return GMC_AUDIT_PRODUCT.pricing?.free?.dailyLimit ?? 1
 }
 
 /** GMC product landing page copy — used by GmcAudit.jsx and Home.jsx */
@@ -80,7 +80,7 @@ export const GMC_LANDING = {
     free: {
       name: 'Free Plan',
       highlight: true,
-      items: ['3 GMC audits per day', 'Full GMC compliance report'],
+      items: ['1 GMC audit per day', 'Full GMC compliance report'],
     },
     pro: {
       name: 'Pro Plan',

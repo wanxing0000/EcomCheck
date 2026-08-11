@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import { useAuth } from '../context/AuthContext'
+import { formatAuthError } from '../utils/authErrors'
 import { trackLogin } from '../lib/analytics.js'
 import { claimPendingGuestReport } from '../utils/guestAuditSession.js'
 
@@ -40,7 +41,7 @@ export default function Login() {
 
       navigate(redirectTo, { replace: true })
     } catch (err) {
-      setError(err.message || 'Login failed')
+      setError(formatAuthError(err))
     } finally {
       setSubmitting(false)
     }
@@ -75,7 +76,7 @@ export default function Login() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="input-field mt-1"
             />
           </div>
 
@@ -90,7 +91,7 @@ export default function Login() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="input-field mt-1"
             />
           </div>
 

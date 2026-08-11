@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Button from './Button'
 import { useAuth } from '../context/AuthContext'
 
@@ -16,7 +16,17 @@ function isActivePath(pathname, to) {
 
 export default function UserMenu() {
   const location = useLocation()
-  const { signOut } = useAuth()
+  const navigate = useNavigate()
+  const { signOut, user } = useAuth()
+
+  async function handleLogout() {
+    try {
+      await signOut()
+      navigate('/', { replace: true })
+    } catch (err) {
+      console.error('Logout failed:', err.message || err)
+    }
+  }
 
   return (
     <div className="flex items-center gap-1">
@@ -34,7 +44,7 @@ export default function UserMenu() {
           {label}
         </Link>
       ))}
-      <Button variant="ghost" size="sm" onClick={() => signOut()}>
+      <Button variant="ghost" size="sm" onClick={handleLogout}>
         Logout
       </Button>
     </div>

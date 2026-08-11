@@ -3,31 +3,27 @@ import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
-import { createClient } from '@supabase/supabase-js'
+import {
+  getSupabaseServiceClient,
+  isSupabaseServiceConfigured,
+  logSupabaseError,
+  toPublicErrorMessage,
+} from './supabaseConfig.js'
+import { isLocalFileFallbackEnabled, isServerlessRuntime } from './runtimeEnv.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const STORAGE_DIR = process.env.REPORT_STORAGE_DIR || join(__dirname, '..', 'data', 'reports')
 
-let supabaseClient = null
-
 function isSupabaseConfigured() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+  return isSupabaseServiceConfigured()
 }
 
 function isLocalFallbackEnabled() {
-  return process.env.REPORT_STORAGE_FALLBACK !== 'false'
+  return isLocalFileFallbackEnabled()
 }
 
 function getSupabase() {
-  if (!isSupabaseConfigured()) return null
-  if (!supabaseClient) {
-    supabaseClient = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-  }
-  return supabaseClient
+  return getSupabaseServiceClient()
 }
 
 function toSummary(record) {
@@ -70,7 +66,7 @@ function buildRecord(url, auditData, options = {}) {
     auditMode: auditMode || auditData.auditMode || auditData.auditPlan?.mode || null,
     url: auditData.url || url,
     createdAt,
-    score: auditData.score ?? null,
+    score: auditData.complianceScore?.score ?? auditData.score ?? null,
     platform: auditData.platform?.name ?? null,
     gmcScore: auditData.gmc?.score ?? null,
     data: auditData,
@@ -110,9 +106,20 @@ async function getReportLocal(id) {
 }
 
 async function listReportsLocal() {
-  await ensureStorageDir()
+  try {
+    await ensureStorageDir()
+  } catch (err) {
+    console.error('Local listReports unavailable:', err.message || err)
+    return []
+  }
 
-  const files = await readdir(STORAGE_DIR)
+  let files
+  try {
+    files = await readdir(STORAGE_DIR)
+  } catch (err) {
+    console.error('Local listReports read failed:', err.message || err)
+    return []
+  }
   const reports = []
 
   for (const file of files) {
@@ -133,9 +140,20 @@ async function listReportsLocal() {
 }
 
 async function listReportsByUserLocal(userId) {
-  await ensureStorageDir()
+  try {
+    await ensureStorageDir()
+  } catch (err) {
+    console.error('Local listReportsByUser unavailable:', err.message || err)
+    return []
+  }
 
-  const files = await readdir(STORAGE_DIR)
+  let files
+  try {
+    files = await readdir(STORAGE_DIR)
+  } catch (err) {
+    console.error('Local listReportsByUser read failed:', err.message || err)
+    return []
+  }
   const reports = []
 
   for (const file of files) {
@@ -239,7 +257,7 @@ export async function saveReport(url, auditData, options = {}) {
       return await saveReportSupabase(record)
     } catch (err) {
       errors.push(err)
-      console.error('Supabase saveReport failed:', err.message || err)
+      logSupabaseError('saveReport', err)
     }
   }
 
@@ -252,8 +270,11 @@ export async function saveReport(url, auditData, options = {}) {
     }
   }
 
-  const message = errors.map((err) => err.message || String(err)).join('; ') || 'No storage backend available'
-  throw new Error(message)
+  throw new Error(
+    isServerlessRuntime()
+      ? 'Unable to save report right now. Please try again later.'
+      : toPublicErrorMessage(errors[0], 'No storage backend available')
+  )
 }
 
 export async function getReport(id) {
@@ -266,8 +287,8 @@ export async function getReport(id) {
       const report = await getReportSupabase(id)
       if (report) return report
     } catch (err) {
-      console.error('Supabase getReport failed:', err.message || err)
-      if (!isLocalFallbackEnabled()) throw err
+      logSupabaseError('getReport', err)
+      if (!isLocalFallbackEnabled()) throw new Error(toPublicErrorMessage(err, 'Unable to load report'))
     }
   }
 
@@ -283,8 +304,8 @@ export async function listReports() {
     try {
       return await listReportsSupabase()
     } catch (err) {
-      console.error('Supabase listReports failed:', err.message || err)
-      if (!isLocalFallbackEnabled()) throw err
+      logSupabaseError('listReports', err)
+      if (!isLocalFallbackEnabled()) throw new Error(toPublicErrorMessage(err, 'Unable to list reports'))
     }
   }
 
@@ -302,8 +323,8 @@ export async function listReportsByUser(userId) {
     try {
       return await listReportsByUserSupabase(userId)
     } catch (err) {
-      console.error('Supabase listReportsByUser failed:', err.message || err)
-      if (!isLocalFallbackEnabled()) throw err
+      logSupabaseError('listReportsByUser', err)
+      if (!isLocalFallbackEnabled()) throw new Error(toPublicErrorMessage(err, 'Unable to list reports'))
     }
   }
 

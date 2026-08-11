@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import AuditHistoryComparison from '../components/AuditHistoryComparison'
+import ScoreTrendBar from '../components/ScoreTrendBar'
 import { GMC_AUDIT_PRODUCT, SEO_AUDIT_PRODUCT } from '../data/auditProducts.js'
 import { useUserReports } from '../hooks/useUserReports.js'
 import {
@@ -9,6 +11,8 @@ import {
   formatAuditMode,
   formatReportDate,
   formatReportScore,
+  formatScoreChange,
+  scoreChangeClassName,
 } from '../utils/dashboardFormat.js'
 
 const FILTERS = [
@@ -18,7 +22,7 @@ const FILTERS = [
 ]
 
 export default function DashboardReports() {
-  const { reports, loading, error } = useUserReports()
+  const { reports, historySummary, latestComparison, loading, error } = useUserReports()
   const [filter, setFilter] = useState('all')
 
   const filteredReports = useMemo(
@@ -26,13 +30,18 @@ export default function DashboardReports() {
     [reports, filter]
   )
 
+  const filteredTrend = useMemo(() => {
+    if (filter === 'all') return historySummary.scoreTrend
+    return historySummary.scoreTrend.filter((entry) => entry.auditMode === filter)
+  }, [historySummary.scoreTrend, filter])
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Reports</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Audit history</h1>
-          <p className="mt-2 text-sm text-gray-600">All saved reports from your account.</p>
+          <p className="mt-2 text-sm text-gray-600">Track compliance scores and changes over time.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={GMC_AUDIT_PRODUCT.landingPath}>
@@ -45,6 +54,26 @@ export default function DashboardReports() {
           </Link>
         </div>
       </div>
+
+      {!loading && filteredTrend.length > 0 && (
+        <Card className="mt-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Score trend</p>
+              <p className="mt-1 text-xs text-gray-500">
+                {filter === 'all' ? 'All saved audits' : `${filter.toUpperCase()} audits only`}
+              </p>
+            </div>
+            <ScoreTrendBar trend={filteredTrend} />
+          </div>
+        </Card>
+      )}
+
+      {!loading && latestComparison && (
+        <div className="mt-8">
+          <AuditHistoryComparison comparison={latestComparison} />
+        </div>
+      )}
 
       <div className="mt-8 flex flex-wrap gap-2">
         {FILTERS.map(({ id, label }) => (
@@ -91,8 +120,10 @@ export default function DashboardReports() {
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">URL</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Audit Type</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Score</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Created</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Compliance Score</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Score Change</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Trend</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Audit Date</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">Report</th>
               </tr>
             </thead>
@@ -103,7 +134,18 @@ export default function DashboardReports() {
                     {report.url}
                   </td>
                   <td className="px-4 py-3 text-gray-700">{formatAuditMode(report.auditMode)}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{formatReportScore(report)}</td>
+                  <td className="px-4 py-3 font-medium tabular-nums text-gray-900">
+                    {formatReportScore(report)}
+                  </td>
+                  <td className={`px-4 py-3 font-medium tabular-nums ${scoreChangeClassName(report)}`}>
+                    {formatScoreChange(report)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {report.trend === 'up' && '↑ Improved'}
+                    {report.trend === 'down' && '↓ Declined'}
+                    {report.trend === 'flat' && '→ Flat'}
+                    {!report.trend || report.trend === 'neutral' ? '—' : null}
+                  </td>
                   <td className="px-4 py-3 text-gray-600">{formatReportDate(report.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
                     <Link

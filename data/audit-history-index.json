@@ -1,846 +1,6 @@
 {
   "cosmichorrorshop.com": [
     {
-      "id": "ffb7e89e-a36d-43e1-b0aa-d9177cde5e7d",
-      "website": "https://cosmichorrorshop.com/",
-      "auditMode": "gmc",
-      "createdAt": "2026-08-05T03:34:14.602Z",
-      "score": {
-        "gmc": 89,
-        "compliance": 95,
-        "trust": 100,
-        "policy": 100
-      },
-      "approvalRisk": {
-        "level": "medium",
-        "score": 89
-      },
-      "issues": [
-        {
-          "id": "T001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Contact Information"
-        },
-        {
-          "id": "T002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "About Us"
-        },
-        {
-          "id": "P001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Privacy Policy"
-        },
-        {
-          "id": "P002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Refund Policy"
-        },
-        {
-          "id": "P003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy"
-        },
-        {
-          "id": "G001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price"
-        },
-        {
-          "id": "G002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Availability"
-        },
-        {
-          "id": "G003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Return Policy"
-        },
-        {
-          "id": "G004",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Information"
-        },
-        {
-          "id": "G005",
-          "severity": "warning",
-          "status": "failed",
-          "title": "Product Identifiers"
-        },
-        {
-          "id": "G006",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price Consistency"
-        },
-        {
-          "id": "G007",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Information"
-        },
-        {
-          "id": "G008",
-          "severity": "medium",
-          "status": "failed",
-          "title": "Payment Information"
-        },
-        {
-          "id": "G009",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Purchase Flow"
-        },
-        {
-          "id": "G010",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy Quality"
-        },
-        {
-          "id": "A002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Google Tag Detection"
-        },
-        {
-          "id": "A003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product JSON-LD Detection"
-        },
-        {
-          "id": "K001",
-          "severity": "high",
-          "status": "passed",
-          "title": "HTTPS"
-        },
-        {
-          "id": "K002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Robots.txt"
-        },
-        {
-          "id": "K003",
-          "severity": "low",
-          "status": "passed",
-          "title": "Sitemap"
-        },
-        {
-          "id": "M001",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Identity"
-        },
-        {
-          "id": "M002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Policy Quality"
-        },
-        {
-          "id": "M003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Trust Signals"
-        }
-      ],
-      "fixGuides": [
-        {
-          "ruleId": "G008",
-          "priority": 30,
-          "title": "Payment Information"
-        },
-        {
-          "ruleId": "G005",
-          "priority": 55,
-          "title": "Product Identifiers"
-        }
-      ]
-    },
-    {
-      "id": "a9351156-f6a2-45b5-b204-fb1738e7e99d",
-      "website": "https://cosmichorrorshop.com/",
-      "auditMode": "gmc",
-      "createdAt": "2026-08-05T03:34:16.216Z",
-      "score": {
-        "gmc": 89,
-        "compliance": 95,
-        "trust": 100,
-        "policy": 100
-      },
-      "approvalRisk": {
-        "level": "medium",
-        "score": 89
-      },
-      "issues": [
-        {
-          "id": "T001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Contact Information"
-        },
-        {
-          "id": "T002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "About Us"
-        },
-        {
-          "id": "P001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Privacy Policy"
-        },
-        {
-          "id": "P002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Refund Policy"
-        },
-        {
-          "id": "P003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy"
-        },
-        {
-          "id": "G001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price"
-        },
-        {
-          "id": "G002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Availability"
-        },
-        {
-          "id": "G003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Return Policy"
-        },
-        {
-          "id": "G004",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Information"
-        },
-        {
-          "id": "G005",
-          "severity": "warning",
-          "status": "failed",
-          "title": "Product Identifiers"
-        },
-        {
-          "id": "G006",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price Consistency"
-        },
-        {
-          "id": "G007",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Information"
-        },
-        {
-          "id": "G008",
-          "severity": "medium",
-          "status": "failed",
-          "title": "Payment Information"
-        },
-        {
-          "id": "G009",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Purchase Flow"
-        },
-        {
-          "id": "G010",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy Quality"
-        },
-        {
-          "id": "A002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Google Tag Detection"
-        },
-        {
-          "id": "A003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product JSON-LD Detection"
-        },
-        {
-          "id": "K001",
-          "severity": "high",
-          "status": "passed",
-          "title": "HTTPS"
-        },
-        {
-          "id": "K002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Robots.txt"
-        },
-        {
-          "id": "K003",
-          "severity": "low",
-          "status": "passed",
-          "title": "Sitemap"
-        },
-        {
-          "id": "M001",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Identity"
-        },
-        {
-          "id": "M002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Policy Quality"
-        },
-        {
-          "id": "M003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Trust Signals"
-        }
-      ],
-      "fixGuides": [
-        {
-          "ruleId": "G008",
-          "priority": 30,
-          "title": "Payment Information"
-        },
-        {
-          "ruleId": "G005",
-          "priority": 55,
-          "title": "Product Identifiers"
-        }
-      ]
-    },
-    {
-      "id": "39b59bc0-8cec-4a07-89c1-36ce8bc7d53e",
-      "website": "https://cosmichorrorshop.com/",
-      "auditMode": "gmc",
-      "createdAt": "2026-08-05T03:42:48.662Z",
-      "score": {
-        "gmc": 89,
-        "compliance": 95,
-        "trust": 100,
-        "policy": 100
-      },
-      "approvalRisk": {
-        "level": "medium",
-        "score": 89
-      },
-      "issues": [
-        {
-          "id": "T001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Contact Information"
-        },
-        {
-          "id": "T002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "About Us"
-        },
-        {
-          "id": "P001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Privacy Policy"
-        },
-        {
-          "id": "P002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Refund Policy"
-        },
-        {
-          "id": "P003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy"
-        },
-        {
-          "id": "G001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price"
-        },
-        {
-          "id": "G002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Availability"
-        },
-        {
-          "id": "G003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Return Policy"
-        },
-        {
-          "id": "G004",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Information"
-        },
-        {
-          "id": "G005",
-          "severity": "warning",
-          "status": "failed",
-          "title": "Product Identifiers"
-        },
-        {
-          "id": "G006",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price Consistency"
-        },
-        {
-          "id": "G007",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Information"
-        },
-        {
-          "id": "G008",
-          "severity": "medium",
-          "status": "failed",
-          "title": "Payment Information"
-        },
-        {
-          "id": "G009",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Purchase Flow"
-        },
-        {
-          "id": "G010",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy Quality"
-        },
-        {
-          "id": "A002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Google Tag Detection"
-        },
-        {
-          "id": "A003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product JSON-LD Detection"
-        },
-        {
-          "id": "K001",
-          "severity": "high",
-          "status": "passed",
-          "title": "HTTPS"
-        },
-        {
-          "id": "K002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Robots.txt"
-        },
-        {
-          "id": "K003",
-          "severity": "low",
-          "status": "passed",
-          "title": "Sitemap"
-        },
-        {
-          "id": "M001",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Identity"
-        },
-        {
-          "id": "M002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Policy Quality"
-        },
-        {
-          "id": "M003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Trust Signals"
-        }
-      ],
-      "fixGuides": [
-        {
-          "ruleId": "G008",
-          "priority": 30,
-          "title": "Payment Information"
-        },
-        {
-          "ruleId": "G005",
-          "priority": 55,
-          "title": "Product Identifiers"
-        }
-      ]
-    },
-    {
-      "id": "8d07e054-a1c3-45e8-be40-e5a90c13f153",
-      "website": "https://cosmichorrorshop.com/",
-      "auditMode": "gmc",
-      "createdAt": "2026-08-05T03:42:50.401Z",
-      "score": {
-        "gmc": 89,
-        "compliance": 95,
-        "trust": 100,
-        "policy": 100
-      },
-      "approvalRisk": {
-        "level": "medium",
-        "score": 89
-      },
-      "issues": [
-        {
-          "id": "T001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Contact Information"
-        },
-        {
-          "id": "T002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "About Us"
-        },
-        {
-          "id": "P001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Privacy Policy"
-        },
-        {
-          "id": "P002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Refund Policy"
-        },
-        {
-          "id": "P003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy"
-        },
-        {
-          "id": "G001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price"
-        },
-        {
-          "id": "G002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Availability"
-        },
-        {
-          "id": "G003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Return Policy"
-        },
-        {
-          "id": "G004",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Information"
-        },
-        {
-          "id": "G005",
-          "severity": "warning",
-          "status": "failed",
-          "title": "Product Identifiers"
-        },
-        {
-          "id": "G006",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price Consistency"
-        },
-        {
-          "id": "G007",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Information"
-        },
-        {
-          "id": "G008",
-          "severity": "medium",
-          "status": "failed",
-          "title": "Payment Information"
-        },
-        {
-          "id": "G009",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Purchase Flow"
-        },
-        {
-          "id": "G010",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy Quality"
-        },
-        {
-          "id": "A002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Google Tag Detection"
-        },
-        {
-          "id": "A003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product JSON-LD Detection"
-        },
-        {
-          "id": "K001",
-          "severity": "high",
-          "status": "passed",
-          "title": "HTTPS"
-        },
-        {
-          "id": "K002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Robots.txt"
-        },
-        {
-          "id": "K003",
-          "severity": "low",
-          "status": "passed",
-          "title": "Sitemap"
-        },
-        {
-          "id": "M001",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Identity"
-        },
-        {
-          "id": "M002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Policy Quality"
-        },
-        {
-          "id": "M003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Trust Signals"
-        }
-      ],
-      "fixGuides": [
-        {
-          "ruleId": "G008",
-          "priority": 30,
-          "title": "Payment Information"
-        },
-        {
-          "ruleId": "G005",
-          "priority": 55,
-          "title": "Product Identifiers"
-        }
-      ]
-    },
-    {
-      "id": "9e620c96-b633-47b2-b5ec-ff77c2afd5d0",
-      "website": "https://cosmichorrorshop.com/",
-      "auditMode": "gmc",
-      "createdAt": "2026-08-05T07:36:53.605Z",
-      "score": {
-        "gmc": 89,
-        "compliance": 95,
-        "trust": 100,
-        "policy": 100
-      },
-      "approvalRisk": {
-        "level": "medium",
-        "score": 89
-      },
-      "issues": [
-        {
-          "id": "T001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Contact Information"
-        },
-        {
-          "id": "T002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "About Us"
-        },
-        {
-          "id": "P001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Privacy Policy"
-        },
-        {
-          "id": "P002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Refund Policy"
-        },
-        {
-          "id": "P003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy"
-        },
-        {
-          "id": "G001",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price"
-        },
-        {
-          "id": "G002",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Availability"
-        },
-        {
-          "id": "G003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Return Policy"
-        },
-        {
-          "id": "G004",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Information"
-        },
-        {
-          "id": "G005",
-          "severity": "warning",
-          "status": "failed",
-          "title": "Product Identifiers"
-        },
-        {
-          "id": "G006",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product Price Consistency"
-        },
-        {
-          "id": "G007",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Information"
-        },
-        {
-          "id": "G008",
-          "severity": "medium",
-          "status": "failed",
-          "title": "Payment Information"
-        },
-        {
-          "id": "G009",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Purchase Flow"
-        },
-        {
-          "id": "G010",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Shipping Policy Quality"
-        },
-        {
-          "id": "A002",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Google Tag Detection"
-        },
-        {
-          "id": "A003",
-          "severity": "high",
-          "status": "passed",
-          "title": "Product JSON-LD Detection"
-        },
-        {
-          "id": "K001",
-          "severity": "high",
-          "status": "passed",
-          "title": "HTTPS"
-        },
-        {
-          "id": "K002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Robots.txt"
-        },
-        {
-          "id": "K003",
-          "severity": "low",
-          "status": "passed",
-          "title": "Sitemap"
-        },
-        {
-          "id": "M001",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Business Identity"
-        },
-        {
-          "id": "M002",
-          "severity": "low",
-          "status": "passed",
-          "title": "Policy Quality"
-        },
-        {
-          "id": "M003",
-          "severity": "medium",
-          "status": "passed",
-          "title": "Product Trust Signals"
-        }
-      ],
-      "fixGuides": [
-        {
-          "ruleId": "G008",
-          "priority": 30,
-          "title": "Payment Information"
-        },
-        {
-          "ruleId": "G005",
-          "priority": 55,
-          "title": "Product Identifiers"
-        }
-      ]
-    },
-    {
       "id": "c2475500-c870-4d90-8575-6bdda61f739e",
       "website": "https://cosmichorrorshop.com/",
       "auditMode": "gmc",
@@ -2525,6 +1685,1543 @@
       "website": "https://cosmichorrorshop.com/",
       "auditMode": "gmc",
       "createdAt": "2026-08-05T08:43:51.720Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "cdd5b1ed-83fb-46a6-9a4b-70501666e9a7",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T10:17:14.283Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "d124d28c-50c7-4b77-a51a-b1783c178caa",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T10:17:19.642Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "3898e0f5-739c-455b-bd0d-4fc9dffce29d",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T10:17:20.024Z",
+      "score": {
+        "gmc": 1,
+        "compliance": 68,
+        "trust": 73,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "high",
+        "score": 1
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "failed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "failed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "failed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "high",
+          "status": "failed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "M003",
+          "priority": 7,
+          "title": "Product Trust Signals"
+        },
+        {
+          "ruleId": "G001",
+          "priority": 10,
+          "title": "Product Price"
+        },
+        {
+          "ruleId": "G002",
+          "priority": 15,
+          "title": "Product Availability"
+        },
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G009",
+          "priority": 40,
+          "title": "Product Purchase Flow"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        },
+        {
+          "ruleId": "A003",
+          "priority": 99,
+          "title": "Product JSON-LD Detection"
+        }
+      ]
+    },
+    {
+      "id": "dbeb1036-c802-44be-b54c-d839756e0689",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T10:24:05.868Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "6fd64c91-21c3-4ea2-8048-89f29b0dadea",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T10:24:08.198Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "a3da04e5-a424-4eb6-b47a-3cdc3acdf84e",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T11:13:05.454Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "b24e2dd1-444a-4092-be7a-4709dc0df747",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T11:13:06.922Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "d4754528-7ea7-480a-8160-acf5a4407b55",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T12:06:28.687Z",
+      "score": {
+        "gmc": 89,
+        "compliance": 95,
+        "trust": 100,
+        "policy": 100
+      },
+      "approvalRisk": {
+        "level": "medium",
+        "score": 89
+      },
+      "issues": [
+        {
+          "id": "T001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Contact Information"
+        },
+        {
+          "id": "T002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "About Us"
+        },
+        {
+          "id": "P001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Privacy Policy"
+        },
+        {
+          "id": "P002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Refund Policy"
+        },
+        {
+          "id": "P003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy"
+        },
+        {
+          "id": "G001",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price"
+        },
+        {
+          "id": "G002",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Availability"
+        },
+        {
+          "id": "G003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Return Policy"
+        },
+        {
+          "id": "G004",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Information"
+        },
+        {
+          "id": "G005",
+          "severity": "warning",
+          "status": "failed",
+          "title": "Product Identifiers"
+        },
+        {
+          "id": "G006",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product Price Consistency"
+        },
+        {
+          "id": "G007",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Information"
+        },
+        {
+          "id": "G008",
+          "severity": "medium",
+          "status": "failed",
+          "title": "Payment Information"
+        },
+        {
+          "id": "G009",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Purchase Flow"
+        },
+        {
+          "id": "G010",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Shipping Policy Quality"
+        },
+        {
+          "id": "A002",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Google Tag Detection"
+        },
+        {
+          "id": "A003",
+          "severity": "high",
+          "status": "passed",
+          "title": "Product JSON-LD Detection"
+        },
+        {
+          "id": "K001",
+          "severity": "high",
+          "status": "passed",
+          "title": "HTTPS"
+        },
+        {
+          "id": "K002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Robots.txt"
+        },
+        {
+          "id": "K003",
+          "severity": "low",
+          "status": "passed",
+          "title": "Sitemap"
+        },
+        {
+          "id": "M001",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Business Identity"
+        },
+        {
+          "id": "M002",
+          "severity": "low",
+          "status": "passed",
+          "title": "Policy Quality"
+        },
+        {
+          "id": "M003",
+          "severity": "medium",
+          "status": "passed",
+          "title": "Product Trust Signals"
+        }
+      ],
+      "fixGuides": [
+        {
+          "ruleId": "G008",
+          "priority": 30,
+          "title": "Payment Information"
+        },
+        {
+          "ruleId": "G005",
+          "priority": 55,
+          "title": "Product Identifiers"
+        }
+      ]
+    },
+    {
+      "id": "c452ccd1-a3f3-4e25-b591-2f355cb29ac7",
+      "website": "https://cosmichorrorshop.com/",
+      "auditMode": "gmc",
+      "createdAt": "2026-08-11T12:06:31.906Z",
       "score": {
         "gmc": 89,
         "compliance": 95,

@@ -56,3 +56,19 @@ create policy "Users read own audit_usage"
   using (auth.uid() = user_id);
 
 -- Inserts/updates are performed by the API via service role (bypasses RLS).
+
+-- visitor_daily_usage — anonymous free-tier GMC limits (1/day per client_id)
+create table if not exists public.visitor_daily_usage (
+  id uuid primary key default gen_random_uuid(),
+  client_id text not null,
+  audit_mode text not null,
+  usage_date date not null default ((timezone('utc', now()))::date),
+  audit_count integer not null default 0 check (audit_count >= 0),
+  updated_at timestamptz not null default now(),
+  unique (client_id, audit_mode, usage_date)
+);
+
+create index if not exists visitor_daily_usage_lookup_idx
+  on public.visitor_daily_usage (client_id, audit_mode, usage_date);
+
+alter table public.visitor_daily_usage enable row level security;

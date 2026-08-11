@@ -16,6 +16,7 @@ import {
 import { generateFixGuides } from './fixGuideGenerator.js'
 import { buildProductComplianceActions } from './productComplianceActionBuilder.js'
 import { buildProductRiskSummary } from './productRiskSummary.js'
+import { calculateComplianceScore } from './complianceScoreCalculator.js'
 import { buildSeoHealthReport, sortSeoIssuesByPriority } from './seoReportBuilder.js'
 import {
   buildAuditSummary,
@@ -729,6 +730,15 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
     })
   }
 
+  const complianceScore =
+    auditContext.mode === 'gmc'
+      ? calculateComplianceScore({
+          complianceActions,
+          productCompliance: enrichedProductCompliance,
+          productRiskSummary,
+        })
+      : null
+
   return {
     quickSummary,
     executiveSummary: buildExecutiveSummary(
@@ -761,6 +771,7 @@ export function buildProfessionalReport(ruleResults, extraWarnings = [], auditCo
     productCompliance: enrichedProductCompliance,
     productComplianceActions,
     productRiskSummary,
+    complianceScore,
   }
 }
 

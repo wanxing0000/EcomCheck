@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { AUTH_STORAGE_KEY, isSupabaseConfigured, supabase } from '../lib/supabase'
+import { formatAuthError } from '../utils/authErrors'
 
 const AuthContext = createContext(null)
 
@@ -34,7 +35,12 @@ export function AuthProvider({ children }) {
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    if (error) {
+      const friendly = new Error(formatAuthError(error))
+      friendly.cause = error
+      throw friendly
+    }
+    setSession(data.session)
     return data
   }, [])
 
@@ -44,14 +50,24 @@ export function AuthProvider({ children }) {
     }
 
     const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
+    if (error) {
+      const friendly = new Error(formatAuthError(error))
+      friendly.cause = error
+      throw friendly
+    }
+    if (data.session) setSession(data.session)
     return data
   }, [])
 
   const signOut = useCallback(async () => {
     if (!supabase) return
     const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (error) {
+      const friendly = new Error(formatAuthError(error))
+      friendly.cause = error
+      throw friendly
+    }
+    setSession(null)
   }, [])
 
   const getAccessToken = useCallback(() => session?.access_token ?? null, [session])
@@ -60,8 +76,10 @@ export function AuthProvider({ children }) {
     () => ({
       session,
       user: session?.user ?? null,
+      isAuthenticated: Boolean(session?.user),
       loading,
       isConfigured: isSupabaseConfigured(),
+      authStorageKey: AUTH_STORAGE_KEY,
       signIn,
       signUp,
       signOut,

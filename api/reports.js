@@ -1,5 +1,6 @@
 import { handleOptions, sendJson } from './_shared.js'
-import { listReports } from '../services/reportStorage.js'
+import { resolveUserFromRequest } from '../services/auth.js'
+import { listReportsByUser } from '../services/reportStorage.js'
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -15,8 +16,17 @@ export default async function handler(req, res) {
     return
   }
 
+  const user = await resolveUserFromRequest(req)
+  if (!user) {
+    sendJson(res, 401, {
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Login required' },
+    })
+    return
+  }
+
   try {
-    const reports = await listReports()
+    const reports = await listReportsByUser(user.id)
     sendJson(res, 200, {
       success: true,
       data: reports,

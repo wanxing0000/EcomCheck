@@ -12,8 +12,15 @@ import {
   buildReportAuditContext,
   resolveAuditPlan,
 } from '../services/auditModes.js'
-import { buildUsagePayload, resolveClientId } from '../services/usageLimit.js'
+import {
+  USAGE_LIMIT_EXCEEDED_CODE,
+  buildUsagePayload,
+  getUsageLimitMessage,
+  resolveClientId,
+  reserveUsageSlot,
+} from '../services/usageLimit.js'
 import { runProductComplianceRules } from '../services/productComplianceRules.js'
+import { logSupabaseError } from '../services/supabaseConfig.js'
 
 function buildGmcRiskDetails(gmcRules) {
   const byId = Object.fromEntries(gmcRules.map((rule) => [rule.id, rule]))
@@ -110,7 +117,12 @@ export async function handleAudit(req, res) {
       })
       return
     }
-    throw err
+    console.error('Audit plan error:', err)
+    sendJson(res, 500, {
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to resolve audit plan' },
+    })
+    return
   }
 
   const auditOptions = {
@@ -126,6 +138,19 @@ export async function handleAudit(req, res) {
     sendJson(res, 400, {
       success: false,
       error: { code: CrawlerErrorCode.INVALID_URL, message: 'URL is required' },
+    })
+    return
+  }
+
+  const usageReservation = await reserveUsageSlot(clientId, auditPlan.mode)
+  if (!usageReservation.allowed) {
+    sendJson(res, 429, {
+      success: false,
+      error: {
+        code: USAGE_LIMIT_EXCEEDED_CODE,
+        message: getUsageLimitMessage(auditPlan.mode),
+      },
+      data: { usage: usageReservation.status },
     })
     return
   }
@@ -175,6 +200,7 @@ export async function handleAudit(req, res) {
       productCompliance: report.productCompliance ?? productCompliance,
       productComplianceActions: report.productComplianceActions ?? [],
       productRiskSummary: report.productRiskSummary ?? null,
+      complianceScore: report.complianceScore ?? null,
       score,
       issues,
       recommendations,
@@ -203,7 +229,13 @@ export async function handleAudit(req, res) {
     }
 
     let saved = null
-    const user = await resolveUserFromRequest(req)
+    let user = null
+    try {
+      user = await resolveUserFromRequest(req)
+    } catch (err) {
+      logSupabaseError('auth resolution', err)
+    }
+
     if (user) {
       try {
         saved = await saveReport(url, auditData, {
@@ -211,13 +243,13 @@ export async function handleAudit(req, res) {
           auditMode: auditPlan.mode,
         })
       } catch (err) {
-        console.error('Storage error:', err.message || err)
+        logSupabaseError('audit saveReport', err)
       }
 
       try {
         await recordAuditUsage(user.id, auditPlan.mode)
       } catch (err) {
-        console.error('Usage record error:', err.message || err)
+        logSupabaseError('audit recordAuditUsage', err)
       }
     }
 
@@ -225,7 +257,7 @@ export async function handleAudit(req, res) {
       success: true,
       data: {
         ...auditData,
-        usage: buildUsagePayload(clientId, auditPlan.mode, { record: auditPlan.mode === 'gmc' }),
+        usage: usageReservation.status ?? (await buildUsagePayload(clientId, auditPlan.mode)),
         ...(saved
           ? {
               reportId: saved.id,

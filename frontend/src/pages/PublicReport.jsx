@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import GmcConversionCta, { FIX_GUIDE_SECTION_ID } from '../components/GmcConversionCta'
+import { useAuth } from '../context/AuthContext'
 import {
   getAuditProduct,
   getAuditMode,
@@ -121,6 +122,7 @@ function groupIssuesByCategory(issues, issuesByCategory) {
 
 export default function PublicReport() {
   const { id } = useParams()
+  const { getAccessToken } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [record, setRecord] = useState(null)
@@ -134,7 +136,13 @@ export default function PublicReport() {
       setError(null)
 
       try {
-        const res = await fetch(`/api/reports/${id}`)
+        const headers = {}
+        const accessToken = getAccessToken()
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`
+        }
+
+        const res = await fetch(`/api/reports/${id}`, { headers })
         const json = await res.json()
 
         if (!res.ok || !json.success) {
@@ -159,7 +167,7 @@ export default function PublicReport() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, getAccessToken])
 
   useEffect(() => {
     if (!record?.data) return

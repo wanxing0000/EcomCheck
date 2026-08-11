@@ -216,7 +216,7 @@ export const SEO_LANDING_PAGES = {
         },
         {
           q: 'How many free scans do I get?',
-          a: 'The free plan includes 3 GMC audits per day. SEO Health Audit remains unlimited.',
+          a: 'The free plan includes 1 GMC audit per day. SEO Health Audit remains unlimited.',
         },
         {
           q: 'Will this fix my Google Merchant Center disapprovals?',
@@ -482,7 +482,7 @@ export const SEO_GUIDE_PAGES = {
         },
         {
           q: 'How often should I re-audit my store?',
-          a: 'Re-audit after theme changes, major sales, new markets, or any Merchant Center notification. Free GMC audits include three scans per day.',
+          a: 'Re-audit after theme changes, major sales, new markets, or any Merchant Center notification. Free GMC audits include one scan per day.',
         },
       ],
     },

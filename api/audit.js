@@ -7,7 +7,17 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    await handleAudit(req, res)
+    try {
+      await handleAudit(req, res)
+    } catch (err) {
+      console.error('Unhandled audit handler error:', err)
+      if (!res.headersSent) {
+        sendJson(res, 500, {
+          success: false,
+          error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
+        })
+      }
+    }
     return
   }
 

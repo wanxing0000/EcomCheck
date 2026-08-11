@@ -1,7 +1,12 @@
 import { handleOptions, sendJson } from '../_shared.js'
 import { resolveUserFromRequest } from '../../services/auth.js'
 import { countUsageByUser } from '../../services/auditUsage.js'
-import { listReportsByUser } from '../../services/reportStorage.js'
+import {
+  buildHistorySummary,
+  buildLatestReportComparison,
+  enrichReportHistory,
+} from '../../services/auditHistoryIntelligence.js'
+import { getReport, listReportsByUser } from '../../services/reportStorage.js'
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -32,17 +37,23 @@ export default async function handler(req, res) {
       countUsageByUser(user.id),
     ])
 
+    const enrichedReports = enrichReportHistory(reports)
+    const historySummary = buildHistorySummary(reports)
+    const latestComparison = await buildLatestReportComparison(reports, getReport)
+
     sendJson(res, 200, {
       success: true,
       data: {
         user: { id: user.id, email: user.email },
-        reports,
+        reports: enrichedReports,
         stats: {
           totalAudits: usage.total,
           gmcAudits: usage.gmc,
           seoAudits: usage.seo,
           savedReports: reports.length,
         },
+        historySummary,
+        latestComparison,
       },
     })
   } catch (err) {

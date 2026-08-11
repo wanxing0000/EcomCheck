@@ -1,6 +1,6 @@
 /** GMC product marketing copy — does not affect rule execution */
 
-export const GMC_DAILY_FREE_LIMIT = 3
+export const GMC_DAILY_FREE_LIMIT = 1
 
 export const GMC_DETECTION_SCOPE = [
   {

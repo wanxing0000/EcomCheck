@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import Badge from '../components/Badge'
 import Card from '../components/Card'
+import SectionHeader from '../components/SectionHeader'
 import RelatedSeoLinks from '../components/RelatedSeoLinks'
 import SeoBreadcrumbs from '../components/SeoBreadcrumbs'
 import SeoMetadata from '../components/SeoMetadata'
@@ -30,27 +32,31 @@ function CheckIcon({ className = 'text-emerald-500' }) {
 
 function UrlAuditForm({ url, onUrlChange, onSubmit, usageLabel, idPrefix = 'gmc' }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-xl">
-      <label htmlFor={`${idPrefix}-audit-url`} className="sr-only">
-        Store URL
-      </label>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <input
-          id={`${idPrefix}-audit-url`}
-          type="url"
-          value={url}
-          onChange={(e) => onUrlChange(e.target.value)}
-          placeholder="https://your-store.com"
-          required
-          className="w-full rounded-lg border border-gray-300 bg-white py-3 px-4 text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-        />
-        <Button type="submit" size="lg" className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-700">
-          {GMC_LANDING.hero.cta}
-        </Button>
-      </div>
-      {usageLabel && <p className="mt-3 text-sm text-emerald-700">{usageLabel}</p>}
-      <p className="mt-2 text-xs text-gray-400">{GMC_LANDING.hero.urlHint}</p>
-    </form>
+    <Card variant="elevated" padding="lg" className="mx-auto max-w-2xl border-emerald-100/80">
+      <form onSubmit={onSubmit}>
+        <label htmlFor={`${idPrefix}-audit-url`} className="block text-left text-sm font-semibold text-gray-900">
+          Store URL
+        </label>
+        <p className="mt-1 text-left text-xs text-gray-500">{GMC_LANDING.hero.urlHint}</p>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <input
+            id={`${idPrefix}-audit-url`}
+            type="url"
+            value={url}
+            onChange={(e) => onUrlChange(e.target.value)}
+            placeholder="https://your-store.com"
+            required
+            className="input-field-emerald"
+          />
+          <Button type="submit" variant="success" size="lg" className="whitespace-nowrap">
+            {GMC_LANDING.hero.cta}
+          </Button>
+        </div>
+        {usageLabel && (
+          <p className="mt-3 text-left text-sm font-medium text-emerald-700">{usageLabel}</p>
+        )}
+      </form>
+    </Card>
   )
 }
 
@@ -100,25 +106,28 @@ export default function GmcAudit() {
       <SeoStructuredData schemas={structuredData} />
       <div>
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-emerald-100 bg-gradient-to-b from-emerald-50/70 to-white">
-        <div className="absolute inset-0 -z-10">
+      <section className="relative overflow-hidden border-b border-emerald-100 bg-white">
+        <div className="hero-glow">
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/70 via-white to-slate-50" />
           <div className="absolute left-1/2 top-0 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-emerald-100/40 blur-3xl" />
         </div>
 
-        <div className="mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="text-left">
             <SeoBreadcrumbs items={toolPage.breadcrumbs} />
           </div>
 
-          <p className="mt-8 text-sm font-semibold uppercase tracking-wide text-emerald-700">
-            {GMC_AUDIT_PRODUCT.name}
-          </p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-            {GMC_LANDING.hero.title}
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
-            {GMC_LANDING.hero.subtitle}
-          </p>
+          <div className="mt-8 text-center">
+            <Badge variant="success" size="lg">
+              {GMC_AUDIT_PRODUCT.name}
+            </Badge>
+            <h1 className="mt-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+              {GMC_LANDING.hero.title}
+            </h1>
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-600">
+              {GMC_LANDING.hero.subtitle}
+            </p>
+          </div>
 
           <div className="mt-10">
             <UrlAuditForm
@@ -129,28 +138,30 @@ export default function GmcAudit() {
             />
           </div>
 
-          <p className="mt-6 text-sm text-gray-500">
-            URL → scan → <span className="font-medium text-gray-700">GMC Readiness Report</span>
+          <p className="mt-6 text-center text-sm text-gray-500">
+            <span className="font-medium text-gray-700">URL</span>
+            <span className="mx-2 text-gray-300">→</span>
+            <span className="font-medium text-gray-700">Scan</span>
+            <span className="mx-2 text-gray-300">→</span>
+            <span className="font-medium text-emerald-700">GMC Readiness Report</span>
           </p>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-16">
+      <section className="section-padding-sm bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              {GMC_LANDING.features.title}
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-gray-600">{GMC_LANDING.features.subtitle}</p>
-          </div>
+          <SectionHeader
+            title={GMC_LANDING.features.title}
+            description={GMC_LANDING.features.subtitle}
+          />
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {GMC_LANDING.features.items.map((item) => (
-              <Card key={item} className="border-emerald-100 bg-emerald-50/20">
+              <Card key={item} variant="elevated" className="border-emerald-100/60">
                 <div className="flex items-start gap-3">
                   <CheckIcon />
-                  <p className="text-sm font-medium text-gray-900">{item}</p>
+                  <p className="text-sm font-medium leading-relaxed text-gray-900">{item}</p>
                 </div>
               </Card>
             ))}
@@ -163,19 +174,15 @@ export default function GmcAudit() {
       </section>
 
       {/* Plans */}
-      <section className="border-y border-gray-100 bg-gray-50/60 py-16">
+      <section className="section-padding-sm border-y border-gray-200/80 bg-white">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-2xl font-bold tracking-tight text-gray-900">
-            {GMC_LANDING.plans.title}
-          </h2>
+          <SectionHeader title={GMC_LANDING.plans.title} />
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <Card className="border-emerald-200 ring-2 ring-emerald-100">
+            <Card variant="accent" className="ring-2 ring-emerald-100">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">{GMC_LANDING.plans.free.name}</h3>
-                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                  Current
-                </span>
+                <Badge variant="success">Current</Badge>
               </div>
               <ul className="mt-5 space-y-3">
                 {GMC_LANDING.plans.free.items.map((item) => (
@@ -187,12 +194,12 @@ export default function GmcAudit() {
               </ul>
             </Card>
 
-            <Card className="border-dashed border-gray-300 bg-white/80">
+            <Card variant="muted" className="border-dashed">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold text-gray-900">{GMC_LANDING.plans.pro.name}</h3>
-                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <Badge variant="muted" size="sm">
                   Coming soon
-                </span>
+                </Badge>
               </div>
               <ul className="mt-5 space-y-3">
                 {GMC_LANDING.plans.pro.items.map((item) => (
@@ -250,7 +257,7 @@ export default function GmcAudit() {
           <p className="mx-auto mt-3 max-w-xl text-emerald-100">
             {HERO_GMC_CTA.hint}
           </p>
-          <div className="mt-8 rounded-2xl bg-white/95 p-6 shadow-lg">
+          <div className="mt-8 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-white/20">
             <UrlAuditForm
               url={url}
               onUrlChange={setUrl}

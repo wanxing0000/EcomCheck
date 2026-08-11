@@ -1,15 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
+import {
+  getSupabaseEnv,
+  isSupabaseAuthConfigured,
+  logSupabaseError,
+} from './supabaseConfig.js'
 
 let authClient = null
 
-function isAuthConfigured() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
-}
-
 function getAuthClient() {
-  if (!isAuthConfigured()) return null
+  if (!isSupabaseAuthConfigured()) return null
   if (!authClient) {
-    authClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    const { url, anonKey } = getSupabaseEnv()
+    authClient = createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
   }
@@ -30,11 +32,16 @@ export async function resolveUserFromRequest(req) {
   const supabase = getAuthClient()
   if (!supabase) return null
 
-  const { data, error } = await supabase.auth.getUser(token)
-  if (error || !data?.user) return null
+  try {
+    const { data, error } = await supabase.auth.getUser(token)
+    if (error || !data?.user) return null
 
-  return {
-    id: data.user.id,
-    email: data.user.email ?? null,
+    return {
+      id: data.user.id,
+      email: data.user.email ?? null,
+    }
+  } catch (err) {
+    logSupabaseError('resolveUserFromRequest', err)
+    return null
   }
 }

@@ -8,18 +8,55 @@
   }
 
   body {
-    @apply bg-white text-gray-900 font-sans;
+    @apply bg-slate-50 text-gray-900 font-sans;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-[calc(100vh-4rem)] bg-slate-50;
+  }
+
+  .section-padding {
+    @apply py-16 sm:py-20;
+  }
+
+  .section-padding-sm {
+    @apply py-12 sm:py-16;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-gray-300 bg-white py-3 px-4 text-gray-900 shadow-sm
+      placeholder:text-gray-400 transition-colors
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20;
+  }
+
+  .input-field-emerald {
+    @apply input-field focus:border-emerald-500 focus:ring-emerald-500/20;
+  }
+
+  .report-section {
+    @apply mt-6;
+  }
+
+  .url-pill {
+    @apply inline-flex max-w-full items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5
+      font-mono text-xs text-gray-600 break-all;
   }
 }
 
 @layer utilities {
   .gradient-text {
-    @apply bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-brand-600 to-emerald-600 bg-clip-text text-transparent;
   }
 
   .gradient-border {
     background: linear-gradient(white, white) padding-box,
-      linear-gradient(135deg, #6366f1, #a4b8fc) border-box;
+      linear-gradient(135deg, #6366f1, #34d399) border-box;
     border: 1px solid transparent;
+  }
+
+  .hero-glow {
+    @apply absolute inset-0 -z-10 overflow-hidden;
   }
 }

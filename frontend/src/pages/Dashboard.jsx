@@ -1,7 +1,8 @@
-import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import AuditHistoryComparison from '../components/AuditHistoryComparison'
+import ScoreTrendBar from '../components/ScoreTrendBar'
 import { GMC_AUDIT_PRODUCT, SEO_AUDIT_PRODUCT } from '../data/auditProducts.js'
 import { useAuth } from '../context/AuthContext'
 import { useUserReports } from '../hooks/useUserReports.js'
@@ -17,10 +18,16 @@ function StatCard({ label, value, hint }) {
   )
 }
 
+function formatImprovement(summary) {
+  if (summary.scoreImprovementLabel) return summary.scoreImprovementLabel
+  if (summary.scoreImprovement === 0) return '0'
+  return '—'
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
-  const { reports, stats, loading, error } = useUserReports()
-  const recentReports = useMemo(() => reports.slice(0, 5), [reports])
+  const { reports, historySummary, latestComparison, loading, error } = useUserReports()
+  const recentReports = reports.slice(0, 5)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
@@ -41,18 +48,48 @@ export default function Dashboard() {
       </div>
 
       <section className="mt-8">
-        <h2 className="sr-only">Audit statistics</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Audits" value={loading ? '…' : stats.totalAudits} hint="All completed scans" />
-          <StatCard label="GMC Audits" value={loading ? '…' : stats.gmcAudits} />
-          <StatCard label="SEO Audits" value={loading ? '…' : stats.seoAudits} />
+        <h2 className="text-lg font-semibold text-gray-900">Audit summary</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            label="Saved Reports"
-            value={loading ? '…' : stats.savedReports}
-            hint="Stored in your account"
+            label="Total Audits"
+            value={loading ? '…' : historySummary.totalAudits}
+            hint="Saved in your account"
+          />
+          <StatCard
+            label="Latest Compliance Score"
+            value={loading ? '…' : historySummary.latestScore ?? '—'}
+            hint="Most recent audit"
+          />
+          <StatCard
+            label="Previous Score"
+            value={loading ? '…' : historySummary.previousScore ?? '—'}
+            hint="Prior saved audit"
+          />
+          <StatCard
+            label="Score Improvement"
+            value={loading ? '…' : formatImprovement(historySummary)}
+            hint="Latest vs previous"
           />
         </div>
+
+        {!loading && historySummary.scoreTrend.length > 1 && (
+          <Card className="mt-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Score trend</p>
+                <p className="mt-1 text-xs text-gray-500">Compliance scores across saved audits</p>
+              </div>
+              <ScoreTrendBar trend={historySummary.scoreTrend} />
+            </div>
+          </Card>
+        )}
       </section>
+
+      {!loading && latestComparison && (
+        <section className="mt-10">
+          <AuditHistoryComparison comparison={latestComparison} title="Latest report comparison" />
+        </section>
+      )}
 
       <section className="mt-10">
         <div className="flex items-center justify-between gap-4">
@@ -99,7 +136,8 @@ export default function Dashboard() {
                           {report.url}
                         </p>
                         <p className="mt-1 text-xs text-gray-500">
-                          {formatAuditMode(report.auditMode)} · Score {formatReportScore(report)} ·{' '}
+                          {formatAuditMode(report.auditMode)} · Score {formatReportScore(report)}
+                          {report.scoreChange ? ` (${report.scoreChange})` : ''} ·{' '}
                           {formatReportDate(report.createdAt)}
                         </p>
                       </div>

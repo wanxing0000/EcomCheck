@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import Button from '../components/Button'
+import Badge from '../components/Badge'
 import Card from '../components/Card'
 import ApprovalRiskSummary from '../components/ApprovalRiskSummary'
 import GmcConversionCta, { FIX_GUIDE_SECTION_ID } from '../components/GmcConversionCta'
@@ -14,6 +15,7 @@ import DetectedProductPagesSection from '../components/DetectedProductPagesSecti
 import ProductPageAnalyzerSection from '../components/ProductPageAnalyzerSection.jsx'
 import ProductComplianceIssuesSection from '../components/ProductComplianceIssuesSection.jsx'
 import ProductRiskSummary from '../components/ProductRiskSummary.jsx'
+import ComplianceScoreCard from '../components/ComplianceScoreCard.jsx'
 import { trackViewReport } from '../lib/analytics.js'
 import {
   buildComplianceRiskAreas,
@@ -876,7 +878,7 @@ export default function Report() {
 
   if (!url || !crawlResult) return null
 
-  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, productDiscovery, productAnalysis, productCompliance, productRiskSummary, gmc, modules, detectionSources, report } = crawlResult
+  const { platform, pages, seo, meta, links, pageContent, contactInfo, score, issues, recommendations, rules, productsAudit, productDiscovery, productAnalysis, productCompliance, productRiskSummary, complianceScore: complianceHealthScore, gmc, modules, detectionSources, report } = crawlResult
 
   const adsRules = rules?.filter((r) => r.category === 'ads') ?? []
   const seoRules = rules?.filter((r) => r.category === 'seo') ?? []
@@ -947,6 +949,8 @@ export default function Report() {
   const executiveSummary = professionalReport.executiveSummary
   const complianceScore =
     executiveSummary?.complianceScore ?? professionalReport.scores?.compliance ?? overallScore
+  const complianceHealth =
+    complianceHealthScore ?? professionalReport.complianceScore ?? report?.complianceScore ?? null
   const seoScore = executiveSummary?.seoScore ?? professionalReport.scores?.seo ?? seoModule?.score
   const complianceIssueCount =
     professionalReport.issueCounts?.complianceTotal ??
@@ -1022,7 +1026,8 @@ export default function Report() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="page-shell">
+    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <ReportSaveCta
         reportId={crawlResult.reportId}
         url={url}
@@ -1031,65 +1036,77 @@ export default function Report() {
       />
 
       {auditMode === 'gmc' && approvalRisk && (
-        <ApprovalRiskSummary approvalRisk={approvalRisk} />
+        <div className="report-section">
+          <ApprovalRiskSummary approvalRisk={approvalRisk} />
+        </div>
       )}
 
-      <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-brand-600">{reportProductLabel}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            {reportTitle}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-gray-600">{reportSubtitle}</p>
-          <p className="mt-2 break-all text-gray-500">{crawlResult.url || url}</p>
-          <p className="mt-1 text-xs text-gray-400">
-            Scanned on{' '}
-            {new Date(crawlResult.savedAt || Date.now()).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </p>
-          {crawlResult.reportId && (
-            <p className="mt-1 text-xs text-gray-400">Report ID: {crawlResult.reportId}</p>
-          )}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={exportReportJson}>
-              Export JSON
-            </Button>
-            {crawlResult.reportId && (
-              <Link to={`/report/${crawlResult.reportId}`}>
-                <Button variant="secondary" size="sm">
-                  View Public Report
-                </Button>
-              </Link>
-            )}
+      <Card variant="accent" padding="none" className="report-section mt-8 overflow-hidden">
+        <div className="flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <Badge variant={auditMode === 'gmc' ? 'success' : 'brand'} size="sm" className="mb-3">
+              {reportProductLabel}
+            </Badge>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
+              {reportTitle}
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">{reportSubtitle}</p>
+            <p className="url-pill mt-4">{crawlResult.url || url}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+              <span>
+                Scanned{' '}
+                {new Date(crawlResult.savedAt || Date.now()).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+              {crawlResult.reportId && <span>ID: {crawlResult.reportId}</span>}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={exportReportJson}>
+                Export JSON
+              </Button>
+              {crawlResult.reportId && (
+                <Link to={`/report/${crawlResult.reportId}`}>
+                  <Button variant="secondary" size="sm">
+                    View Public Report
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
 
-        {primaryScoreRings.length > 0 && (
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
-            {primaryScoreRings.map((ring) => (
-              <div key={ring.label} className="flex flex-col items-center">
-                <ScoreRing label={ring.label} value={ring.value} size={ring.size} />
-                {ring.subtext && <p className="mt-2 text-xs text-gray-400">{ring.subtext}</p>}
-              </div>
-            ))}
-            {fullAudit && overallScore != null && overallScore !== complianceScore && complianceScore != null && (
-              <p className="text-xs text-gray-400">Overall (incl. SEO): {overallScore}</p>
-            )}
-          </div>
-        )}
-      </div>
+          {primaryScoreRings.length > 0 && (
+            <div className="flex shrink-0 flex-col items-center gap-4 rounded-2xl border border-white/80 bg-white/70 p-4 sm:flex-row lg:flex-col">
+              {primaryScoreRings.map((ring) => (
+                <div key={ring.label} className="flex flex-col items-center">
+                  <ScoreRing label={ring.label} value={ring.value} size={ring.size} />
+                  {ring.subtext && <p className="mt-2 text-xs text-gray-500">{ring.subtext}</p>}
+                </div>
+              ))}
+              {fullAudit && overallScore != null && overallScore !== complianceScore && complianceScore != null && (
+                <p className="text-xs text-gray-500">Overall (incl. SEO): {overallScore}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {auditMode === 'gmc' && complianceHealth && (
+        <ComplianceScoreCard complianceScore={complianceHealth} />
+      )}
 
       {auditMode === 'gmc' && previousAuditComparison && (
-        <AuditProgressSection comparison={previousAuditComparison} />
+        <div className="report-section">
+          <AuditProgressSection comparison={previousAuditComparison} />
+        </div>
       )}
 
       {auditMode === 'gmc' && complianceActions.length > 0 && (
-        <Card className="mt-6 border-brand-100">
+        <Card variant="elevated" className="report-section">
           <h2 className="text-lg font-semibold text-gray-900">Fix Assistant Overview</h2>
           <p className="mt-1 text-sm text-gray-500">
             How many issues include copy-ready AI fix drafts in this report.
@@ -1100,7 +1117,7 @@ export default function Report() {
 
       {/* Executive Summary */}
       {executiveSummary && (
-        <Card className="mt-6 border-brand-100 bg-gradient-to-r from-brand-50 to-white">
+        <Card variant="accent" className="report-section">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold text-gray-900">Executive Summary</h2>
             <span
@@ -2421,6 +2438,7 @@ export default function Report() {
           </Button>
         </Link>
       </div>
+    </div>
     </div>
   )
 }

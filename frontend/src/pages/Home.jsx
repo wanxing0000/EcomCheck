@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
+import Badge from '../components/Badge'
 import Card from '../components/Card'
+import SectionHeader from '../components/SectionHeader'
 import RelatedSeoLinks from '../components/RelatedSeoLinks'
 import SeoMetadata from '../components/SeoMetadata'
 import {
@@ -15,6 +17,12 @@ import {
 import { SEO_GUIDE_LINKS, SEO_SITE } from '../data/seoPages.js'
 import { fetchUsageStatus, formatUsageLabel } from '../utils/usageLimit.js'
 import { trackClickGmcAudit } from '../lib/analytics.js'
+
+const heroStats = [
+  { label: 'GMC audits', value: '1/day free', accent: 'success' },
+  { label: 'SEO audits', value: 'Unlimited', accent: 'brand' },
+  { label: 'Product checks', value: 'Included', accent: 'muted' },
+]
 
 const proofPoints = [
   {
@@ -51,22 +59,18 @@ export default function Home() {
       />
 
       {/* Hero — routes to GMC product page */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 to-white" />
-          <div className="absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-emerald-100/50 blur-3xl" />
+      <section className="relative overflow-hidden bg-white">
+        <div className="hero-glow">
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/70 via-white to-slate-50" />
+          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-r from-emerald-100/60 to-brand-100/40 blur-3xl" />
         </div>
 
-        <div className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-800">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
+        <div className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8">
+          <Badge variant="success" size="lg" dot className="mb-6">
             {GMC_AUDIT_PRODUCT.name} — Core Product
-          </div>
+          </Badge>
 
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl lg:leading-[1.1]">
             Pass Google Merchant Center{' '}
             <span className="gradient-text">before you launch ads</span>
           </h1>
@@ -76,18 +80,27 @@ export default function Home() {
           </p>
 
           <div className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-2">
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
-              {GMC_AUDIT_PRODUCT.name}
-            </span>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 shadow-sm">
-              {SEO_AUDIT_PRODUCT.name} · Free
-            </span>
+            <Badge variant="success">{GMC_AUDIT_PRODUCT.name}</Badge>
+            <Badge variant="brand">{SEO_AUDIT_PRODUCT.name} · Free</Badge>
+          </div>
+
+          <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
+            {heroStats.map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-2xl border border-gray-200/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-sm"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{stat.label}</p>
+                <p className="mt-1 text-lg font-bold text-gray-900">{stat.value}</p>
+              </div>
+            ))}
           </div>
 
           <div className="mx-auto mt-10 max-w-xl">
             <Button
+              variant="success"
               size="lg"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={() => {
                 trackClickGmcAudit('home_hero')
                 navigate(GMC_AUDIT_PRODUCT.landingPath)
@@ -106,20 +119,15 @@ export default function Home() {
       </section>
 
       {/* Free Ecommerce Audit Tools */}
-      <section id="choose-audit" className="border-t border-gray-100 bg-gray-50/50 py-20">
+      <section id="choose-audit" className="section-padding border-t border-gray-200/80 bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Audit Tools</p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              Free Ecommerce Audit Tools
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-gray-600">
-              Start with GMC compliance or free SEO health. Platform-specific GMC pages and guides help you grow organic
-              traffic before programmatic content scales.
-            </p>
-          </div>
+          <SectionHeader
+            kicker="Audit Tools"
+            title="Free Ecommerce Audit Tools"
+            description="Start with GMC compliance or free SEO health. Platform-specific GMC pages and guides help you grow organic traffic before programmatic content scales."
+          />
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
+          <div className="mt-12 grid gap-6 md:grid-cols-2">
             {[gmcOption, seoOption].filter(Boolean).map((option, index) => (
               <Link
                 key={option.mode}
@@ -128,25 +136,18 @@ export default function Home() {
               >
                 <Card
                   hover
-                  className={`flex h-full flex-col transition-colors ${
-                    option.mode === 'gmc'
-                      ? 'border-emerald-200 ring-2 ring-emerald-100 group-hover:border-emerald-300'
-                      : 'group-hover:border-brand-300'
+                  variant={option.mode === 'gmc' ? 'accent' : 'elevated'}
+                  className={`flex h-full flex-col ${
+                    option.mode === 'gmc' ? 'ring-2 ring-emerald-100' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-semibold ${option.accent}`}>
-                        {option.name}
-                      </div>
+                      <Badge variant={option.mode === 'gmc' ? 'success' : 'brand'}>{option.name}</Badge>
                       {option.badge && (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                            option.mode === 'gmc' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
-                          }`}
-                        >
+                        <Badge variant="muted" size="sm">
                           {option.badge}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <svg
@@ -189,35 +190,39 @@ export default function Home() {
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <Link to="/audit/shopify-gmc" className="group">
-              <Card hover className="h-full group-hover:border-emerald-300">
-                <p className="text-sm font-semibold text-gray-900 group-hover:text-emerald-700">
+              <Card hover variant="elevated" className="h-full">
+                <Badge variant="success" size="sm" className="mb-3">
+                  Platform
+                </Badge>
+                <p className="text-base font-semibold text-gray-900 group-hover:text-emerald-700">
                   Shopify GMC Audit
                 </p>
-                <p className="mt-1 text-xs text-gray-500">GMC compliance scan for Shopify storefronts</p>
+                <p className="mt-1 text-sm text-gray-500">GMC compliance scan for Shopify storefronts</p>
               </Card>
             </Link>
             <Link to="/audit/woocommerce-gmc" className="group">
-              <Card hover className="h-full group-hover:border-emerald-300">
-                <p className="text-sm font-semibold text-gray-900 group-hover:text-emerald-700">
+              <Card hover variant="elevated" className="h-full">
+                <Badge variant="success" size="sm" className="mb-3">
+                  Platform
+                </Badge>
+                <p className="text-base font-semibold text-gray-900 group-hover:text-emerald-700">
                   WooCommerce GMC Audit
                 </p>
-                <p className="mt-1 text-xs text-gray-500">GMC compliance scan for WooCommerce stores</p>
+                <p className="mt-1 text-sm text-gray-500">GMC compliance scan for WooCommerce stores</p>
               </Card>
             </Link>
           </div>
 
-          <div className="mt-10">
-            <p className="text-center text-sm font-semibold uppercase tracking-wide text-gray-500">Future</p>
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <div className="mt-12">
+            <SectionHeader kicker="Future" title="Coming Soon" align="center" className="max-w-xl" />
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
               {FUTURE_AUDIT_OPTIONS.map((option) => (
-                <Card key={option.id} className="relative border-dashed border-gray-200 bg-white/80 opacity-80">
+                <Card key={option.id} variant="muted" className="border-dashed opacity-90">
                   <div className="flex items-start justify-between gap-3">
-                    <div className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-semibold ${option.accent}`}>
-                      {option.name}
-                    </div>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    <Badge variant="muted">{option.name}</Badge>
+                    <Badge variant="muted" size="sm">
                       Coming soon
-                    </span>
+                    </Badge>
                   </div>
                   <p className="mt-4 text-sm leading-relaxed text-gray-500">{option.tagline}</p>
                 </Card>
@@ -225,16 +230,15 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-10">
-            <p className="text-center text-sm font-semibold uppercase tracking-wide text-gray-500">GMC Guides</p>
-            <ul className="mx-auto mt-4 flex max-w-3xl flex-wrap justify-center gap-3">
+          <div className="mt-12">
+            <SectionHeader kicker="Resources" title="GMC Guides" align="center" className="max-w-xl" />
+            <ul className="mx-auto mt-6 flex max-w-3xl flex-wrap justify-center gap-3">
               {Object.values(SEO_GUIDE_LINKS).map((guide) => (
                 <li key={guide.id}>
-                  <Link
-                    to={guide.path}
-                    className="inline-flex rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-emerald-300 hover:text-emerald-800"
-                  >
-                    {guide.label}
+                  <Link to={guide.path}>
+                    <Badge variant="muted" size="lg" className="hover:border-emerald-300 hover:text-emerald-800">
+                      {guide.label}
+                    </Badge>
                   </Link>
                 </li>
               ))}
@@ -244,21 +248,20 @@ export default function Home() {
       </section>
 
       {/* Proof points */}
-      <section className="py-20">
+      <section className="section-padding bg-white">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              Stop guessing. Start fixing.
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-gray-600">
-              AuditPilot turns a manual checklist into an actionable audit your whole team can use.
-            </p>
-          </div>
+          <SectionHeader
+            title="Stop guessing. Start fixing."
+            description="AuditPilot turns a manual checklist into an actionable audit your whole team can use."
+          />
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
-            {proofPoints.map((point) => (
-              <Card key={point.title} hover>
-                <h3 className="text-lg font-semibold text-gray-900">{point.title}</h3>
+            {proofPoints.map((point, index) => (
+              <Card key={point.title} hover variant="elevated">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-sm font-bold text-brand-700">
+                  {index + 1}
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900">{point.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">{point.description}</p>
               </Card>
             ))}
@@ -267,24 +270,26 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      <section className="pb-20">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <Card className="border-0 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white">
-            <h2 className="text-2xl font-bold sm:text-3xl">Ready for Google Shopping?</h2>
-            <p className="mx-auto mt-4 max-w-lg text-emerald-100">
-              Open the GMC product page to see features, free quota, and start your compliance scan.
-            </p>
-            <Button
-              variant="secondary"
-              size="lg"
-              className="mt-8 border-0 bg-white text-emerald-700 hover:bg-emerald-50"
-              onClick={() => {
-                trackClickGmcAudit('home_hero')
-                navigate(GMC_AUDIT_PRODUCT.landingPath)
-              }}
-            >
-              {HERO_GMC_CTA.label}
-            </Button>
+      <section className="section-padding-sm pb-24">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <Card variant="accent" padding="lg" className="overflow-hidden border-0 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-lg">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold sm:text-3xl">Ready for Google Shopping?</h2>
+              <p className="mx-auto mt-4 max-w-lg text-emerald-100">
+                Open the GMC product page to see features, free quota, and start your compliance scan.
+              </p>
+              <Button
+                variant="secondary"
+                size="lg"
+                className="mt-8 border-0 bg-white text-emerald-700 hover:bg-emerald-50"
+                onClick={() => {
+                  trackClickGmcAudit('home_hero')
+                  navigate(GMC_AUDIT_PRODUCT.landingPath)
+                }}
+              >
+                {HERO_GMC_CTA.label}
+              </Button>
+            </div>
           </Card>
         </div>
       </section>

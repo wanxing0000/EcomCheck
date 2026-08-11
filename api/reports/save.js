@@ -2,6 +2,7 @@ import { handleOptions, readJsonBody, sendJson } from '../_shared.js'
 import { resolveUserFromRequest } from '../../services/auth.js'
 import { recordAuditUsage } from '../../services/auditUsage.js'
 import { saveReport } from '../../services/reportStorage.js'
+import { logSupabaseError } from '../../services/supabaseConfig.js'
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
       data: saved,
     })
   } catch (err) {
-    console.error('Failed to save report:', err)
+    logSupabaseError('reports/save', err)
     sendJson(res, 500, {
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Failed to save report' },

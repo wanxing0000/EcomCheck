@@ -2,31 +2,26 @@ import { mkdir, writeFile, readdir, readFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
-import { createClient } from '@supabase/supabase-js'
+import {
+  getSupabaseServiceClient,
+  isSupabaseServiceConfigured,
+  logSupabaseError,
+} from './supabaseConfig.js'
+import { isLocalFileFallbackEnabled } from './runtimeEnv.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const USAGE_DIR = process.env.AUDIT_USAGE_DIR || join(__dirname, '..', 'data', 'audit_usage')
 
-let supabaseClient = null
-
 function isSupabaseConfigured() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+  return isSupabaseServiceConfigured()
 }
 
 function isLocalFallbackEnabled() {
-  return process.env.REPORT_STORAGE_FALLBACK !== 'false'
+  return isLocalFileFallbackEnabled()
 }
 
 function getSupabase() {
-  if (!isSupabaseConfigured()) return null
-  if (!supabaseClient) {
-    supabaseClient = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-  }
-  return supabaseClient
+  return getSupabaseServiceClient()
 }
 
 function buildUsageRecord(userId, auditMode, id = randomUUID(), createdAt = new Date().toISOString()) {
@@ -66,14 +61,12 @@ export async function recordAuditUsage(userId, auditMode) {
   if (!userId || !auditMode) return null
 
   const record = buildUsageRecord(userId, auditMode)
-  const errors = []
 
   if (isSupabaseConfigured()) {
     try {
       return await recordUsageSupabase(record)
     } catch (err) {
-      errors.push(err)
-      console.error('Supabase recordAuditUsage failed:', err.message || err)
+      logSupabaseError('recordAuditUsage', err)
     }
   }
 
@@ -81,13 +74,8 @@ export async function recordAuditUsage(userId, auditMode) {
     try {
       return await recordUsageLocal(record)
     } catch (err) {
-      errors.push(err)
-      console.error('Local recordAuditUsage failed:', err.message || err)
+      logSupabaseError('recordAuditUsage.local', err)
     }
-  }
-
-  if (errors.length > 0) {
-    console.error('Audit usage not recorded:', errors.map((e) => e.message).join('; '))
   }
 
   return null
@@ -107,7 +95,7 @@ export async function countUsageByUser(userId) {
       if (error) throw error
       return summarizeUsage(data || [])
     } catch (err) {
-      console.error('Supabase countUsageByUser failed:', err.message || err)
+      logSupabaseError('countUsageByUser', err)
       if (!isLocalFallbackEnabled()) return { total: 0, gmc: 0, seo: 0 }
     }
   }
@@ -133,7 +121,7 @@ export async function countUsageByUser(userId) {
 
       return summarizeUsage(rows)
     } catch (err) {
-      console.error('Local countUsageByUser failed:', err.message || err)
+      logSupabaseError('countUsageByUser.local', err)
     }
   }
 

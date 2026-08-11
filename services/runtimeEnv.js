@@ -30,3 +30,13 @@ export function isServerlessRuntime() {
 export function canPersistToProjectFiles() {
   return !isServerlessRuntime()
 }
+
+/**
+ * Whether local JSON file fallback (data/reports, data/audit_usage) is allowed.
+ * Disabled on Vercel/serverless where /var/task is read-only.
+ * @returns {boolean}
+ */
+export function isLocalFileFallbackEnabled() {
+  if (!canPersistToProjectFiles()) return false
+  return process.env.REPORT_STORAGE_FALLBACK !== 'false'
+}

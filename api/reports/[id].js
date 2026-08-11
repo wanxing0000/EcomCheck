@@ -1,5 +1,14 @@
 import { handleOptions, sendJson } from '../_shared.js'
+import { resolveUserFromRequest } from '../../services/auth.js'
 import { getReport } from '../../services/reportStorage.js'
+
+/**
+ * User-owned reports require a matching JWT. Legacy rows without userId remain public.
+ */
+export function canAccessReport(report, user) {
+  if (!report?.userId) return true
+  return Boolean(user && user.id === report.userId)
+}
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -24,6 +33,15 @@ export default async function handler(req, res) {
       sendJson(res, 404, {
         success: false,
         error: { code: 'NOT_FOUND', message: 'Report not found' },
+      })
+      return
+    }
+
+    const user = await resolveUserFromRequest(req)
+    if (!canAccessReport(report, user)) {
+      sendJson(res, 403, {
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'You do not have access to this report' },
       })
       return
     }

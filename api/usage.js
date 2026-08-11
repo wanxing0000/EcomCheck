@@ -20,8 +20,17 @@ export default async function handler(req, res) {
   const mode = url.searchParams.get('mode') || 'gmc'
   const clientId = url.searchParams.get('clientId') || resolveClientId(req, {})
 
-  sendJson(res, 200, {
-    success: true,
-    data: getUsageStatus(clientId, mode),
-  })
+  try {
+    const status = await getUsageStatus(clientId, mode)
+    sendJson(res, 200, {
+      success: true,
+      data: status,
+    })
+  } catch (err) {
+    console.error('Usage status error:', err.message || err)
+    sendJson(res, 500, {
+      success: false,
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to load usage status' },
+    })
+  }
 }

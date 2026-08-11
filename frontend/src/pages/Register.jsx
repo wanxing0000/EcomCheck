@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Card from '../components/Card'
 import { useAuth } from '../context/AuthContext'
+import { formatAuthError } from '../utils/authErrors'
 import { trackRegister } from '../lib/analytics.js'
 import { claimPendingGuestReport } from '../utils/guestAuditSession.js'
 
@@ -53,7 +54,7 @@ export default function Register() {
         setMessage('Account created. Check your email to confirm, then log in.')
       }
     } catch (err) {
-      setError(err.message || 'Registration failed')
+      setError(formatAuthError(err))
     } finally {
       setSubmitting(false)
     }
@@ -92,7 +93,7 @@ export default function Register() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="input-field mt-1"
             />
           </div>
 
@@ -108,7 +109,7 @@ export default function Register() {
               minLength={6}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="input-field mt-1"
             />
             <p className="mt-1 text-xs text-gray-500">Minimum 6 characters.</p>
           </div>

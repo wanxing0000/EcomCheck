@@ -38,7 +38,7 @@ export async function fetchUsageStatus(mode = 'gmc') {
 }
 
 export function formatUsageLabel(usage) {
-  if (!usage) return `${GMC_DAILY_FREE_LIMIT} free scans per day`
+  if (!usage) return `${GMC_DAILY_FREE_LIMIT} free scan per day`
   if (usage.unlimited) return 'Unlimited scans'
   const remaining = usage.remaining ?? GMC_DAILY_FREE_LIMIT
   const limit = usage.dailyLimit ?? GMC_DAILY_FREE_LIMIT
